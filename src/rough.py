@@ -139,4 +139,5 @@ def train_with_diagnostics(
     with open(f"{results_dir}/{model_name}_history.json", "w") as f:
         json.dump(history, f)
 
+
     return model
