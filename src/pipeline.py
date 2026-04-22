@@ -160,15 +160,17 @@ def run_pipeline():
             joblib.dump(model, f'{MODEL_DIR}/{model_name}_model.joblib')
 
             print("--- Evaluation ---")
-            metrics = evaluate(model, X_test, y_te, model_name.upper(), threshold_method='f1')
+            for method in ['youden', 'f1', 'cost']:
+                print(f"\n>>>> Threshold Method: {method.upper()}")
+                metrics = evaluate(model, X_test, y_te, model_name.upper(), threshold_method=method)
+                results.append({
+                    'model': model_name,
+                    'threshold_type': method,
+                    **metrics
+                })
 
             print("--- Error Analysis ---")
             error_analysis(model, X_test, y_te, X_te_txt)
-
-            results.append({
-                'model': model_name,
-                **metrics
-            })
 
     # ===============================
     # DL MODE
@@ -206,15 +208,17 @@ def run_pipeline():
         # EVALUATION
         # -----------------------
         print("--- Evaluation ---")
-        metrics = evaluate(model, X_test, y_te, DL_MODEL.upper(), threshold_method='f1')
+        for method in ['youden', 'f1', 'cost']:
+            print(f"\n>>>> Threshold Method: {method.upper()}")
+            metrics = evaluate(model, X_test, y_te, DL_MODEL.upper(), threshold_method=method)
+            results.append({
+                'model': DL_MODEL,
+                'threshold_type': method,
+                **metrics
+            })
 
         print("--- Error Analysis ---")
         error_analysis(model, X_test, y_te, X_te_txt)
-
-        results.append({
-            'model': DL_MODEL,
-            **metrics
-        })
 
     # -----------------------
     # SAVE RESULTS

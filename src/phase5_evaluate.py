@@ -70,6 +70,28 @@ def plot_pr_curve(y_test, y_prob, model_name, results_dir='results'):
     return ap
 
 
+def plot_threshold_f1(y_test, y_prob, model_name, chosen_threshold, results_dir='results'):
+    precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
+    f1s = 2 * precisions * recalls / (precisions + recalls + 1e-8)
+    
+    plt.figure(figsize=(8, 5))
+    plt.plot(thresholds, f1s[:-1], label='F1 Score', color='purple', lw=2)
+    
+    # Mark the chosen threshold
+    idx = np.argmin(np.abs(thresholds - chosen_threshold))
+    plt.scatter([chosen_threshold], [f1s[idx]], color='red', s=100, label=f'Chosen ({chosen_threshold:.3f})', zorder=5)
+    
+    plt.axvline(x=chosen_threshold, color='red', linestyle='--', alpha=0.5)
+    plt.xlabel('Threshold')
+    plt.ylabel('F1 Score')
+    plt.title(f'Threshold vs F1 — {model_name}')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f'{results_dir}/f1_threshold_{model_name.lower()}.png', dpi=150)
+    plt.show()
+
+
 def plot_threshold_vs_metrics(y_test, y_prob, model_name, results_dir='results'):
     precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
     f1s = 2 * precisions * recalls / (precisions + recalls + 1e-8)
@@ -154,10 +176,13 @@ def evaluate(model, X_test, y_test, model_name='MODEL',
             f_m = f1_score(y_test, y_pred_m, zero_division=0)
             print(f"{m:<12} | {t:<10.4f} | {p_m:<10.4f} | {r_m:<10.4f} | {f_m:<10.4f}")
 
-        plot_probability_distribution(y_prob, y_test)
-
+        plot_threshold_vs_metrics(y_test, y_prob, model_name, results_dir)
+        
         threshold = find_optimal_threshold(y_test, y_prob, method=threshold_method)
         print(f"\nOptimal threshold ({threshold_method}): {threshold:.4f}")
+
+        # New specific F1 plot with mark
+        plot_threshold_f1(y_test, y_prob, model_name, threshold, results_dir)
 
         y_pred = (y_prob > threshold).astype(int)
 
