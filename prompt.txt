@@ -1,169 +1,32 @@
-✅ FINAL UPGRADED VERSION
-import os
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader, TensorDataset
-
-
-def train_with_diagnostics(
-    model,
-    X_train, y_train,
-    X_val, y_val,
-    epochs=5,
-    batch_size=16,
-    lr=2e-5,
-    model_name="model",
-    results_dir="results"
-):
-    os.makedirs(results_dir, exist_ok=True)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = torch.nn.BCEWithLogitsLoss()
-
-    # Convert to tensors
-    X_train_t = torch.tensor(X_train, dtype=torch.long)
-    y_train_t = torch.tensor(y_train.values, dtype=torch.float)
-
-    train_loader = DataLoader(
-        TensorDataset(X_train_t, y_train_t),
-        batch_size=batch_size,
-        shuffle=True
-    )
-
-    train_losses, val_losses = [], []
-    train_accs, val_accs = [], []
-
-    for epoch in range(epochs):
-        model.train()
-        batch_losses, batch_accs = [], []
-
-        for xb, yb in train_loader:
-            xb, yb = xb.to(device), yb.to(device)
-
-            optimizer.zero_grad()
-            logits = model(xb).squeeze()
-            loss = criterion(logits, yb)
-            loss.backward()
-            optimizer.step()
-
-            preds = (torch.sigmoid(logits) > 0.5).float()
-            acc = (preds == yb).float().mean().item()
-
-            batch_losses.append(loss.item())
-            batch_accs.append(acc)
-
-        # Validation
-        model.eval()
-        with torch.no_grad():
-            X_v = torch.tensor(X_val, dtype=torch.long).to(device)
-            y_v = torch.tensor(y_val.values, dtype=torch.float).to(device)
-
-            val_logits = model(X_v).squeeze()
-            val_loss = criterion(val_logits, y_v).item()
-
-            val_preds = (torch.sigmoid(val_logits) > 0.5).float()
-            val_acc = (val_preds == y_v).float().mean().item()
-
-        train_losses.append(np.mean(batch_losses))
-        val_losses.append(val_loss)
-        train_accs.append(np.mean(batch_accs))
-        val_accs.append(val_acc)
-
-        print(f"Epoch {epoch+1}/{epochs} | "
-              f"Train Loss: {train_losses[-1]:.4f} | Val Loss: {val_loss:.4f} | "
-              f"Train Acc: {train_accs[-1]:.4f} | Val Acc: {val_acc:.4f}")
-
-    # Save model
-    torch.save(model.state_dict(), f"{results_dir}/{model_name}.pt")
-
-    # Plot curves
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-
-    ax1.plot(train_losses, label='Train Loss')
-    ax1.plot(val_losses, label='Val Loss')
-    ax1.set_title('Loss Curves')
-    ax1.legend()
-
-    ax2.plot(train_accs, label='Train Acc')
-    ax2.plot(val_accs, label='Val Acc')
-    ax2.set_title('Accuracy Curves')
-    ax2.legend()
-
-    plt.tight_layout()
-    plt.savefig(f"{results_dir}/training_{model_name}.png", dpi=150)
-    plt.show()
-
-    return model
-✅ STEP 2 — Add Reproducibility (VERY IMPORTANT)
-
-Add this at the top of your training script:
-
-import random
-import numpy as np
-import torch
-
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-set_seed(42)
-✅ STEP 3 — Early Stopping (prevents overfitting)
-
-Add inside training loop:
-
-best_val_loss = float('inf')
-patience = 2
-counter = 0
-
-Inside epoch loop:
-
-if val_loss < best_val_loss:
-    best_val_loss = val_loss
-    counter = 0
-    torch.save(model.state_dict(), f"{results_dir}/{model_name}_best.pt")
-else:
-    counter += 1
-    if counter >= patience:
-        print("Early stopping triggered")
-        break
-✅ STEP 4 — Add Learning Rate Scheduler (optional but strong)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode='min', patience=1, factor=0.5
-)
-
-After validation:
-
-scheduler.step(val_loss)
-✅ STEP 5 — Align with Evaluation Pipeline
-
-Your evaluation uses:
-
-optimized threshold ✅
-
-Training uses:
-
-threshold = 0.5 ✅ (this is OK)
-
-👉 Just document this clearly in report
-
-✅ STEP 6 — Save Training Logs (for comparison later)
-
-Add:
-
-import json
-
-history = {
-    "train_loss": train_losses,
-    "val_loss": val_losses,
-    "train_acc": train_accs,
-    "val_acc": val_accs
-}
-
-with open(f"{results_dir}/{model_name}_history.json", "w") as f:
-    json.dump(history, f)
+project_root/
+│
+├── binary_pipeline/          ← your existing code, kept as-is
+│   ├── src/
+│   └── ...
+│
+└── multiclass_pipeline/
+    ├── data/                 ← same parquet, different label column
+    ├── configs/
+    │   └── config.py         ← MODE, NUM_CLASSES=5, CLASS_NAMES
+    ├── preprocessing/
+    │   ├── preprocess.py     ← same cleaning, adds label encoder
+    │   └── label_encoder.py  ← LabelEncoder + class weights
+    ├── features/
+    │   └── features.py       ← same hand features, unchanged
+    ├── vectorizers/
+    │   ├── ml_vectorizer.py  ← same TF-IDF
+    │   ├── bert_vectorizer.py← same tokenizer
+    │   └── dl_vectorizer.py  ← same vocab builder
+    ├── models/
+    │   ├── ml/
+    │   │   └── ml_models.py  ← LR/RF/XGB updated for multiclass
+    │   ├── dl/
+    │   │   └── bilstm.py     ← output layer changed to 5 classes
+    │   └── llm/
+    │       └── llm_classifier.py ← Gemini/Claude prompt updated
+    ├── training/
+    │   └── trainer.py        ← class-weighted loss, diagnostics
+    ├── evaluation/
+    │   └── evaluator.py      ← macro/micro F1, per-class ROC, OvR
+    └── utils/
+        └── class_weights.py  ← compute_class_weight helper
