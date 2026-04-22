@@ -26,6 +26,16 @@ def get_model_ml(name, num_classes=5):
             eval_metric='mlogloss',
             scale_pos_weight=None  # use sample_weight instead
         )
+    elif name == 'svm':
+        from sklearn.svm import SVC
+        return SVC(
+            kernel='linear',
+            probability=True,
+            class_weight='balanced',
+            max_iter=1000,
+            decision_function_shape='ovr',
+            random_state=42
+        )
     else:
         raise ValueError(f"Unknown model: {name}")
 

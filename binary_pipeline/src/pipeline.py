@@ -162,7 +162,8 @@ def run_pipeline():
             print("--- Evaluation ---")
             for method in ['youden', 'f1', 'cost']:
                 print(f"\n>>>> Threshold Method: {method.upper()}")
-                metrics = evaluate(model, X_test, y_te, model_name.upper(), threshold_method=method)
+                metrics = evaluate(model, X_test, y_te, model_name.upper(), 
+                                   threshold_method=method, X_train=X_train, y_train=y_tr)
                 results.append({
                     'model': model_name,
                     'threshold_type': method,
@@ -210,7 +211,8 @@ def run_pipeline():
         print("--- Evaluation ---")
         for method in ['youden', 'f1', 'cost']:
             print(f"\n>>>> Threshold Method: {method.upper()}")
-            metrics = evaluate(model, X_test, y_te, DL_MODEL.upper(), threshold_method=method)
+            metrics = evaluate(model, X_test, y_te, DL_MODEL.upper(), 
+                               threshold_method=method, X_train=X_train, y_train=y_tr)
             results.append({
                 'model': DL_MODEL,
                 'threshold_type': method,

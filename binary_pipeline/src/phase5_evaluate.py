@@ -7,8 +7,10 @@ from sklearn.metrics import (
     classification_report, confusion_matrix,
     roc_auc_score, roc_curve,
     precision_recall_curve, average_precision_score,
-    accuracy_score, precision_score, recall_score, f1_score
+    accuracy_score, precision_score, recall_score, f1_score,
+    auc
 )
+from sklearn.model_selection import learning_curve
 import torch
 from transformers import PreTrainedModel
 from torch.utils.data import DataLoader, TensorDataset
@@ -94,6 +96,27 @@ def plot_threshold_f1(y_test, y_prob, model_name, chosen_threshold, results_dir=
     plt.show()
 
 
+def plot_learning_curves(model, X, y, model_name, results_dir):
+    train_sizes, train_scores, test_scores = learning_curve(
+        model, X, y, cv=3, scoring='accuracy', n_jobs=-1, 
+        train_sizes=np.linspace(0.1, 1.0, 5)
+    )
+    
+    train_mean = np.mean(train_scores, axis=1)
+    test_mean = np.mean(test_scores, axis=1)
+    
+    plt.figure(figsize=(8, 5))
+    plt.plot(train_sizes, train_mean, label='Train Accuracy')
+    plt.plot(train_sizes, test_mean, label='Cross-Val Accuracy')
+    plt.title(f'Learning Curves — {model_name}')
+    plt.xlabel('Training Samples')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig(f"{results_dir}/learning_{model_name.lower()}.png", dpi=150)
+    plt.show()
+
+
 def plot_threshold_vs_metrics(y_test, y_prob, model_name, results_dir='results'):
     precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
     f1s = 2 * precisions * recalls / (precisions + recalls + 1e-8)
@@ -160,9 +183,16 @@ def plot_probability_distribution(y_prob, y_test):
 
 
 def evaluate(model, X_test, y_test, model_name='MODEL',
-             threshold_method='youden', results_dir='results'):
+             threshold_method='youden', results_dir='results',
+             X_train=None, y_train=None):
 
     os.makedirs(results_dir, exist_ok=True)
+    
+    # Plot Learning Curves for ML models (if training data provided)
+    if X_train is not None and y_train is not None and not isinstance(model, torch.nn.Module):
+        print(f"--- Plotting Learning Curves for {model_name} ---")
+        plot_learning_curves(model, X_train, y_train, model_name, results_dir)
+
     y_prob = get_probabilities(model, X_test)
 
     if y_prob is not None:

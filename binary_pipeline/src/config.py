@@ -1,4 +1,4 @@
-MODE = 'dl'
+MODE = 'ml'
 
 ML_MODELS = ['lr', 'rf', 'svm', 'xgb']
 

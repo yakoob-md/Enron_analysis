@@ -7,9 +7,11 @@ import numpy as np
 import os
 from sklearn.metrics import (
     classification_report, confusion_matrix,
-    roc_auc_score, accuracy_score, f1_score, precision_score, recall_score
+    roc_auc_score, accuracy_score, f1_score, precision_score, recall_score,
+    roc_curve, auc
 )
 from sklearn.preprocessing import label_binarize
+from sklearn.model_selection import learning_curve
 
 def evaluate_multiclass(y_test, y_pred, y_prob, model_name, results_dir, class_names):
     os.makedirs(results_dir, exist_ok=True)
@@ -48,5 +50,43 @@ def evaluate_multiclass(y_test, y_pred, y_prob, model_name, results_dir, class_n
         macro_auc = roc_auc_score(y_bin, y_prob, multi_class='ovr', average='macro')
         print(f"Macro ROC-AUC: {macro_auc:.4f}")
         metrics['roc_auc_macro'] = macro_auc
+        
+        # Plot Multiclass ROC
+        plot_multiclass_roc(y_bin, y_prob, class_names, model_name, results_dir)
     
     return metrics
+
+def plot_multiclass_roc(y_bin, y_prob, class_names, model_name, results_dir):
+    plt.figure(figsize=(8, 6))
+    for i, cls in enumerate(class_names):
+        fpr, tpr, _ = roc_curve(y_bin[:, i], y_prob[:, i])
+        roc_auc = auc(fpr, tpr)
+        plt.plot(fpr, tpr, label=f'{cls} (AUC = {roc_auc:.2f})')
+    
+    plt.plot([0, 1], [0, 1], 'k--', alpha=0.5)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'Multiclass ROC (OvR) — {model_name}')
+    plt.legend(loc='lower right')
+    plt.savefig(f"{results_dir}/roc_multi_{model_name.lower()}.png", dpi=150)
+    plt.close()
+
+def plot_learning_curves(model, X, y, model_name, results_dir):
+    train_sizes, train_scores, test_scores = learning_curve(
+        model, X, y, cv=3, scoring='accuracy', n_jobs=-1, 
+        train_sizes=np.linspace(0.1, 1.0, 5)
+    )
+    
+    train_mean = np.mean(train_scores, axis=1)
+    test_mean = np.mean(test_scores, axis=1)
+    
+    plt.figure(figsize=(8, 5))
+    plt.plot(train_sizes, train_mean, label='Train Accuracy')
+    plt.plot(train_sizes, test_mean, label='Cross-Val Accuracy')
+    plt.title(f'Learning Curves — {model_name}')
+    plt.xlabel('Training Samples')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.savefig(f"{results_dir}/learning_{model_name.lower()}.png", dpi=150)
+    plt.close()

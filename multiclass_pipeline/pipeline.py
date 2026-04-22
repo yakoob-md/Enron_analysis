@@ -13,7 +13,7 @@ from preprocessing.label_encoder import MultiClassLabelEncoder
 from features.features import engineer_features, HAND_FEATURES
 from vectorizers.ml_vectorizer import vectorize_ml
 from models.ml.ml_models import get_model_ml, train_model_ml
-from evaluation.evaluator import evaluate_multiclass
+from evaluation.evaluator import evaluate_multiclass, plot_learning_curves
 
 def run_multiclass_pipeline():
     os.makedirs(MODEL_DIR, exist_ok=True)
@@ -65,6 +65,10 @@ def run_multiclass_pipeline():
             y_prob = model.predict_proba(X_test)
             
             metrics = evaluate_multiclass(y_test, y_pred, y_prob, m_name, RESULTS_DIR, CLASS_NAMES)
+            
+            print(f"--- Plotting Learning Curves for {m_name.upper()} ---")
+            plot_learning_curves(model, X_train, y_train, m_name, RESULTS_DIR)
+            
             results.append({'model': m_name, **metrics})
             
         res_df = pd.DataFrame(results)
