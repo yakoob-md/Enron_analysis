@@ -75,6 +75,11 @@ def run_multiclass_pipeline():
         print("\n=== FINAL COMPARISON ===")
         print(res_df)
         res_df.to_csv(f"{RESULTS_DIR}/multiclass_comparison.csv", index=False)
+        
+        # Save Model Comparison Table
+        from utils.table_visualizer import save_styled_table
+        table_dir = os.path.join(RESULTS_DIR, "tables", "multiclass")
+        save_styled_table(res_df, "multiclass_model_comparison.png", table_dir, "Multiclass Model Comparison")
 
     # ===============================
     # DL MODE

@@ -231,6 +231,11 @@ def run_pipeline():
     print("\n=== FINAL RESULTS ===")
     print(results_df)
 
+    # Save Model Comparison Table
+    from utils.table_visualizer import save_styled_table
+    table_dir = os.path.join(RESULTS_DIR, "tables", "binary")
+    save_styled_table(results_df, "binary_model_comparison.png", table_dir, "Binary Model Comparison")
+
     return results_df
 
 

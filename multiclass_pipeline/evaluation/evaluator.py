@@ -12,12 +12,21 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 from sklearn.model_selection import learning_curve
+import pandas as pd
+from utils.table_visualizer import save_styled_table, export_classification_report
 
 def evaluate_multiclass(y_test, y_pred, y_prob, model_name, results_dir, class_names):
     os.makedirs(results_dir, exist_ok=True)
     
     print(f"\n=== {model_name} MULTICLASS RESULTS ===")
-    print(classification_report(y_test, y_pred, target_names=class_names, zero_division=0))
+    report_str = classification_report(y_test, y_pred, target_names=class_names, zero_division=0)
+    print(report_str)
+    
+    # Save Classification Report Table
+    report_dict = classification_report(y_test, y_pred, target_names=class_names, output_dict=True, zero_division=0)
+    table_dir = os.path.join(results_dir, "tables", "multiclass")
+    export_classification_report(report_dict, f"multiclass_classification_{model_name.lower()}.png", 
+                                 table_dir, f"Classification Report - {model_name}")
     
     # Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)

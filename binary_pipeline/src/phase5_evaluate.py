@@ -14,6 +14,8 @@ from sklearn.model_selection import learning_curve
 import torch
 from transformers import PreTrainedModel
 from torch.utils.data import DataLoader, TensorDataset
+import pandas as pd
+from utils.table_visualizer import save_styled_table, export_classification_report
 
 
 def find_optimal_threshold(y_test, y_prob, method='youden'):
@@ -200,6 +202,7 @@ def evaluate(model, X_test, y_test, model_name='MODEL',
         print(f"{'Method':<12} | {'Threshold':<10} | {'Precision':<10} | {'Recall':<10} | {'F1':<10}")
         print("-" * 60)
         
+        threshold_results = []
         for m in ['youden', 'f1', 'gmean', 'cost']:
             t = find_optimal_threshold(y_test, y_prob, method=m)
             y_pred_m = (y_prob > t).astype(int)
@@ -207,6 +210,19 @@ def evaluate(model, X_test, y_test, model_name='MODEL',
             r_m = recall_score(y_test, y_pred_m, zero_division=0)
             f_m = f1_score(y_test, y_pred_m, zero_division=0)
             print(f"{m:<12} | {t:<10.4f} | {p_m:<10.4f} | {r_m:<10.4f} | {f_m:<10.4f}")
+            threshold_results.append({
+                'Method': m,
+                'Threshold': t,
+                'Precision': p_m,
+                'Recall': r_m,
+                'F1': f_m
+            })
+        
+        # Save Threshold Table
+        df_thresh = pd.DataFrame(threshold_results)
+        table_dir = os.path.join(results_dir, "tables", "binary")
+        save_styled_table(df_thresh, f"binary_threshold_{model_name.lower()}.png", 
+                          table_dir, f"Threshold Analysis - {model_name}")
 
         plot_threshold_vs_metrics(y_test, y_prob, model_name, results_dir)
         
@@ -238,6 +254,13 @@ def evaluate(model, X_test, y_test, model_name='MODEL',
     print(f"\n=== {model_name} RESULTS ===")
     print(classification_report(y_test, y_pred,
           target_names=['Non-Disclosure', 'Disclosure'], zero_division=0))
+    
+    # Save Classification Report Table
+    report_dict = classification_report(y_test, y_pred, target_names=['Non-Disclosure', 'Disclosure'], output_dict=True, zero_division=0)
+    table_dir = os.path.join(results_dir, "tables", "binary")
+    export_classification_report(report_dict, f"binary_classification_{model_name.lower()}.png", 
+                                 table_dir, f"Classification Report - {model_name}")
+
     print("Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
     if roc_auc:
