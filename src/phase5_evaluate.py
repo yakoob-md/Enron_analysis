@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
@@ -116,12 +117,38 @@ def get_probabilities(model, X_test):
         return None
 
 
+def plot_probability_distribution(y_prob, y_test):
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    plt.figure()
+    plt.hist(y_prob, bins=50)
+    plt.title("Prediction Probability Distribution")
+    plt.show()
+
+    y_test = np.array(y_test)
+    plt.figure()
+    plt.hist(y_prob[y_test==0], bins=50, alpha=0.5, label='Non-Disclosure')
+    plt.hist(y_prob[y_test==1], bins=50, alpha=0.5, label='Disclosure')
+    plt.legend()
+    plt.title("Class-wise Probability Distribution")
+    plt.show()
+
+
 def evaluate(model, X_test, y_test, model_name='MODEL',
              threshold_method='youden', results_dir='results'):
 
+    os.makedirs(results_dir, exist_ok=True)
     y_prob = get_probabilities(model, X_test)
 
     if y_prob is not None:
+        print(f"\n--- Threshold Analysis for {model_name} ---")
+        for m in ['youden', 'f1', 'gmean', 'cost']:
+            t = find_optimal_threshold(y_test, y_prob, method=m)
+            print(f"{m} threshold: {t:.4f}")
+
+        plot_probability_distribution(y_prob, y_test)
+
         threshold = find_optimal_threshold(y_test, y_prob, method=threshold_method)
         print(f"\nOptimal threshold ({threshold_method}): {threshold:.4f}")
 
