@@ -143,9 +143,16 @@ def evaluate(model, X_test, y_test, model_name='MODEL',
 
     if y_prob is not None:
         print(f"\n--- Threshold Analysis for {model_name} ---")
+        print(f"{'Method':<12} | {'Threshold':<10} | {'Precision':<10} | {'Recall':<10} | {'F1':<10}")
+        print("-" * 60)
+        
         for m in ['youden', 'f1', 'gmean', 'cost']:
             t = find_optimal_threshold(y_test, y_prob, method=m)
-            print(f"{m} threshold: {t:.4f}")
+            y_pred_m = (y_prob > t).astype(int)
+            p_m = precision_score(y_test, y_pred_m, zero_division=0)
+            r_m = recall_score(y_test, y_pred_m, zero_division=0)
+            f_m = f1_score(y_test, y_pred_m, zero_division=0)
+            print(f"{m:<12} | {t:<10.4f} | {p_m:<10.4f} | {r_m:<10.4f} | {f_m:<10.4f}")
 
         plot_probability_distribution(y_prob, y_test)
 
