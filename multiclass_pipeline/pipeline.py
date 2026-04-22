@@ -26,6 +26,13 @@ def run_multiclass_pipeline():
     encoder = MultiClassLabelEncoder(CLASS_NAMES)
     df['label_idx'] = encoder.encode(df['disclosure_type'])
     
+    # Compute class weights to handle imbalance (Step 1 from prompt)
+    from sklearn.utils.class_weight import compute_class_weight
+    import numpy as np
+    weights = compute_class_weight('balanced', classes=np.unique(df['label_idx']), y=df['label_idx'])
+    class_weights = dict(enumerate(weights))
+    print("\nClass weights:", class_weights)
+    
     # 3. Features
     if MODE == 'ml':
         df = engineer_features(df)

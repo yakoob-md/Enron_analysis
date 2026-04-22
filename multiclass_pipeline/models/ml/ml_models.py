@@ -1,34 +1,30 @@
 # multiclass_pipeline/models/ml/ml_models.py
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import LinearSVC
+from xgboost import XGBClassifier
 import numpy as np
 
-def get_model_ml(name='lr', num_classes=5):
+def get_model_ml(name, num_classes=5):
     if name == 'lr':
         return LogisticRegression(
-            max_iter=3000,
-            class_weight='balanced',
             multi_class='multinomial',
-            solver='saga',
-            random_state=42
+            solver='lbfgs',
+            class_weight='balanced',
+            max_iter=1000
         )
     elif name == 'rf':
         return RandomForestClassifier(
-            n_estimators=300,
-            max_depth=20,
+            n_estimators=200,
             class_weight='balanced',
-            random_state=42,
             n_jobs=-1
         )
     elif name == 'xgb':
-        from xgboost import XGBClassifier
+        # XGBoost handles multiclass natively
         return XGBClassifier(
-            n_estimators=300,
-            max_depth=6,
             objective='multi:softprob',
             num_class=num_classes,
-            random_state=42
+            eval_metric='mlogloss',
+            scale_pos_weight=None  # use sample_weight instead
         )
     else:
         raise ValueError(f"Unknown model: {name}")

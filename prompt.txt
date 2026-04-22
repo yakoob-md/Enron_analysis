@@ -1,32 +1,13 @@
-project_root/
-│
-├── binary_pipeline/          ← your existing code, kept as-is
-│   ├── src/
-│   └── ...
-│
-└── multiclass_pipeline/
-    ├── data/                 ← same parquet, different label column
-    ├── configs/
-    │   └── config.py         ← MODE, NUM_CLASSES=5, CLASS_NAMES
-    ├── preprocessing/
-    │   ├── preprocess.py     ← same cleaning, adds label encoder
-    │   └── label_encoder.py  ← LabelEncoder + class weights
-    ├── features/
-    │   └── features.py       ← same hand features, unchanged
-    ├── vectorizers/
-    │   ├── ml_vectorizer.py  ← same TF-IDF
-    │   ├── bert_vectorizer.py← same tokenizer
-    │   └── dl_vectorizer.py  ← same vocab builder
-    ├── models/
-    │   ├── ml/
-    │   │   └── ml_models.py  ← LR/RF/XGB updated for multiclass
-    │   ├── dl/
-    │   │   └── bilstm.py     ← output layer changed to 5 classes
-    │   └── llm/
-    │       └── llm_classifier.py ← Gemini/Claude prompt updated
-    ├── training/
-    │   └── trainer.py        ← class-weighted loss, diagnostics
-    ├── evaluation/
-    │   └── evaluator.py      ← macro/micro F1, per-class ROC, OvR
-    └── utils/
-        └── class_weights.py  ← compute_class_weight helper
+Step 4 — BERT update. Change num_labels and the problem type.
+pythonfrom transformers import AutoModelForSequenceClassification
+
+model = AutoModelForSequenceClassification.from_pretrained(
+    'bert-base-uncased',
+    num_labels=5,                          # <-- was 1 or 2
+    problem_type='single_label_classification'
+)
+
+# In training loop, use integer labels 0-4, not binary
+# Loss is computed internally by HuggingFace when labels are passed
+outputs = model(input_ids=ids, attention_mask=mask, labels=y_batch)
+loss = outputs.loss   # automatically CrossEntropy
