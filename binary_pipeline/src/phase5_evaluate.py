@@ -141,12 +141,13 @@ def get_probabilities(model, X_test):
 
     if isinstance(model, PreTrainedModel):
         model.eval()
+        device = next(model.parameters()).device
         dataset = TensorDataset(X_test['input_ids'], X_test['attention_mask'])
         loader = DataLoader(dataset, batch_size=8)
         all_probs = []
         with torch.no_grad():
             for batch in loader:
-                input_ids, attention_mask = batch
+                input_ids, attention_mask = [b.to(device) for b in batch]
                 outputs = model(input_ids=input_ids, attention_mask=attention_mask)
                 probs = torch.sigmoid(outputs.logits.squeeze()).cpu().numpy()
                 all_probs.extend(np.atleast_1d(probs))
@@ -154,8 +155,9 @@ def get_probabilities(model, X_test):
 
     elif isinstance(model, torch.nn.Module):
         model.eval()
+        device = next(model.parameters()).device
         with torch.no_grad():
-            X_tensor = torch.tensor(X_test, dtype=torch.long)
+            X_tensor = torch.tensor(X_test, dtype=torch.long).to(device)
             outputs = model(X_tensor).squeeze()
             return torch.sigmoid(outputs).cpu().numpy()
 

@@ -119,6 +119,12 @@ def run_multiclass_pipeline():
         metrics = evaluate_multiclass(y_test, np.array(all_preds), np.array(all_probs), "BILSTM", RESULTS_DIR, CLASS_NAMES)
         print("\n=== DL RESULTS ===")
         print(metrics)
+        
+        # Save Model Comparison Table (DL)
+        res_df = pd.DataFrame([{'model': 'BILSTM', **metrics}])
+        from utils.table_visualizer import save_styled_table
+        table_dir = os.path.join(RESULTS_DIR, "tables", "multiclass")
+        save_styled_table(res_df, "multiclass_dl_comparison.png", table_dir, "Multiclass DL Comparison")
 
 if __name__ == "__main__":
     run_multiclass_pipeline()

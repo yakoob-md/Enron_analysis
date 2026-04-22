@@ -1,8 +1,8 @@
-MODE = 'ml'
+MODE = 'dl'
 
 ML_MODELS = ['lr', 'rf', 'svm', 'xgb']
 
-DL_MODEL = 'bert'   # 🔥 change here
+DL_MODEL = 'bilstm'   # 🔥 change here
 
 DATA_PATH = 'data/emails_labeled_silver_tenK.parquet'
 MODEL_DIR = 'models'
