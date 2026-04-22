@@ -84,26 +84,42 @@ def run_pipeline():
     print("New dataset size:", len(df))
 
     # -----------------------
-    # SPLIT
+    # SPLIT (Train: 70%, Val: 15%, Test: 15%)
     # -----------------------
     print("--- Splitting Data ---")
 
     if MODE == 'ml':
-        X_tr_txt, X_te_txt, X_tr_hf, X_te_hf, y_tr, y_te = train_test_split(
+        # First split into train+val (85%) and test (15%)
+        X_tv_txt, X_te_txt, X_tv_hf, X_te_hf, y_tv, y_te = train_test_split(
             df['text_input'],
             df[HAND_FEATURES],
             df['label'],
-            test_size=0.2,
+            test_size=0.15,
             random_state=42,
             stratify=df['label']
         )
+        # Then split tv into train and val
+        X_tr_txt, X_va_txt, X_tr_hf, X_va_hf, y_tr, y_va = train_test_split(
+            X_tv_txt, X_tv_hf, y_tv,
+            test_size=0.176, # 0.15 / 0.85
+            random_state=42,
+            stratify=y_tv
+        )
     else:
-        X_tr_txt, X_te_txt, y_tr, y_te = train_test_split(
+        # First split into train+val (85%) and test (15%)
+        X_tv_txt, X_te_txt, y_tv, y_te = train_test_split(
             df['text_input'],
             df['label'],
-            test_size=0.2,
+            test_size=0.15,
             random_state=42,
             stratify=df['label']
+        )
+        # Then split tv into train and val
+        X_tr_txt, X_va_txt, y_tr, y_va = train_test_split(
+            X_tv_txt, y_tv,
+            test_size=0.176, # 0.15 / 0.85
+            random_state=42,
+            stratify=y_tv
         )
 
     # -----------------------
@@ -115,10 +131,14 @@ def run_pipeline():
         X_train, X_test, vectorizer = vectorize(
             X_tr_txt, X_te_txt, X_tr_hf, X_te_hf
         )
+        # Vectorize validation set as well
+        _, X_val, _ = vectorize(X_tr_txt, X_va_txt, X_tr_hf, X_va_hf)
         joblib.dump(vectorizer, f'{MODEL_DIR}/tfidf.joblib')
 
     else:
         X_train, X_test, tokenizer = vectorize(X_tr_txt, X_te_txt)
+        # Vectorize validation set as well
+        _, X_val, _ = vectorize(X_tr_txt, X_va_txt)
         joblib.dump(tokenizer, f'{MODEL_DIR}/tokenizer.joblib')
 
     results = []
@@ -169,15 +189,15 @@ def run_pipeline():
                 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 
             else:
-                print("🚀 Training BERT model...")
+                print("🚀 Training BERT model with diagnostics...")
                 model = get_model(DL_MODEL)
-                model = train_model(model, X_train, y_tr)
+                model = train_model(model, X_train, y_tr, X_val, y_va)
                 model.save_pretrained(model_path)
 
         # 🔥 OTHER DL MODELS
         else:
             model = get_model(DL_MODEL)
-            model = train_model(model, X_train, y_tr)
+            model = train_model(model, X_train, y_tr, X_val, y_va)
 
             import torch
             torch.save(model.state_dict(), f"{MODEL_DIR}/{DL_MODEL}_model.pt")
