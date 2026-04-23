@@ -22,10 +22,11 @@ def error_analysis(model, X_test, y_test, X_text):
         loader = DataLoader(dataset, batch_size=8)
 
         all_preds = []
+        device = next(model.parameters()).device
 
         with torch.no_grad():
             for batch in loader:
-                input_ids, attention_mask = batch
+                input_ids, attention_mask = [b.to(device) for b in batch]
 
                 outputs = model(
                     input_ids=input_ids,
@@ -45,13 +46,14 @@ def error_analysis(model, X_test, y_test, X_text):
     # ===============================
     elif isinstance(model, torch.nn.Module):
         model.eval()
+        device = next(model.parameters()).device
 
         with torch.no_grad():
-            X_tensor = torch.tensor(X_test, dtype=torch.long)
+            X_tensor = torch.tensor(X_test, dtype=torch.long).to(device)
             outputs = model(X_tensor).squeeze()
 
             y_prob = torch.sigmoid(outputs).cpu().numpy()
-            y_pred = (y_prob > 0.7).astype(int)
+            y_pred = (y_prob > 0.5).astype(int)
 
     # ===============================
     # ML models

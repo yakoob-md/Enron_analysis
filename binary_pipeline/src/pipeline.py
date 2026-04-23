@@ -4,7 +4,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 
 # Config
-from config import MODE, ML_MODELS, DL_MODEL, DATA_PATH, MODEL_DIR, RESULTS_DIR
+from config import MODE, ML_MODELS, DL_MODELS, DATA_PATH, MODEL_DIR, RESULTS_DIR
 
 # Common phases
 from phase1_validate import validate_data
@@ -23,14 +23,7 @@ if MODE == 'ml':
 
 elif MODE == 'dl':
     import torch
-
-    if DL_MODEL == 'bert':
-        from vectorizers.bert_vectorizer import vectorize
-        from models.bert_model import get_model, train_model
-        from transformers import AutoModelForSequenceClassification
-    else:
-        from vectorizers.dl_vectorizer import vectorize
-        from models.dl_models import get_model, train_model
+    # Will import vectorizers/models dynamically in the loop
 
 else:
     raise ValueError("MODE must be 'ml' or 'dl'")
@@ -128,18 +121,12 @@ def run_pipeline():
     print("--- Phase 3: Vectorization ---")
 
     if MODE == 'ml':
+        print("--- Phase 3: Vectorization (ML) ---")
         X_train, X_test, vectorizer = vectorize(
             X_tr_txt, X_te_txt, X_tr_hf, X_te_hf
         )
-        # Vectorize validation set as well
         _, X_val, _ = vectorize(X_tr_txt, X_va_txt, X_tr_hf, X_va_hf)
         joblib.dump(vectorizer, f'{MODEL_DIR}/tfidf.joblib')
-
-    else:
-        X_train, X_test, tokenizer = vectorize(X_tr_txt, X_te_txt)
-        # Vectorize validation set as well
-        _, X_val, _ = vectorize(X_tr_txt, X_va_txt)
-        joblib.dump(tokenizer, f'{MODEL_DIR}/tokenizer.joblib')
 
     results = []
 
@@ -177,50 +164,55 @@ def run_pipeline():
     # DL MODE
     # ===============================
     elif MODE == 'dl':
-
-        print(f"\n==============================")
-        print(f"Running DL Model: {DL_MODEL.upper()}")
-        print(f"==============================")
-
-        # 🔥 BERT LOGIC
-        if DL_MODEL == 'bert':
-
-            model_path = f"{MODEL_DIR}/bert_model"
-
-            if os.path.exists(model_path):
-                print("✅ Loading saved BERT model...")
-                model = AutoModelForSequenceClassification.from_pretrained(model_path)
-
+        for dl_name in DL_MODELS:
+            print(f"\n==============================")
+            print(f"Running DL Model: {dl_name.upper()}")
+            print(f"==============================")
+            
+            # Dynamic Vectorization for DL
+            if dl_name == 'bert':
+                from vectorizers.bert_vectorizer import vectorize as v_dl
+                from models.bert_model import get_model as gm_dl, train_model as tm_dl
+                from transformers import AutoModelForSequenceClassification
             else:
-                print("🚀 Training BERT model with diagnostics...")
-                model = get_model(DL_MODEL)
-                model = train_model(model, X_train, y_tr, X_val, y_va)
-                model.save_pretrained(model_path)
+                from vectorizers.dl_vectorizer import vectorize as v_dl
+                from models.dl_models import get_model as gm_dl, train_model as tm_dl
 
-        # 🔥 OTHER DL MODELS
-        else:
-            model = get_model(DL_MODEL)
-            model = train_model(model, X_train, y_tr, X_val, y_va)
+            print(f"--- Vectorizing for {dl_name.upper()} ---")
+            X_train, X_test, tokenizer = v_dl(X_tr_txt, X_te_txt)
+            _, X_val, _ = v_dl(X_tr_txt, X_va_txt)
+            joblib.dump(tokenizer, f'{MODEL_DIR}/{dl_name}_tokenizer.joblib')
 
-            import torch
-            torch.save(model.state_dict(), f"{MODEL_DIR}/{DL_MODEL}_model.pt")
+            # Train/Load Logic
+            if dl_name == 'bert':
+                model_path = f"{MODEL_DIR}/bert_model"
+                if os.path.exists(model_path):
+                    print("✅ Loading saved BERT model...")
+                    model = AutoModelForSequenceClassification.from_pretrained(model_path)
+                else:
+                    print("🚀 Training BERT model...")
+                    model = gm_dl(dl_name)
+                    model = tm_dl(model, X_train, y_tr, X_val, y_va)
+                    model.save_pretrained(model_path)
+            else:
+                model = gm_dl(dl_name)
+                model = tm_dl(model, X_train, y_tr, X_val, y_va)
+                torch.save(model.state_dict(), f"{MODEL_DIR}/{dl_name}_model.pt")
 
-        # -----------------------
-        # EVALUATION
-        # -----------------------
-        print("--- Evaluation ---")
-        for method in ['youden', 'f1', 'cost']:
-            print(f"\n>>>> Threshold Method: {method.upper()}")
-            metrics = evaluate(model, X_test, y_te, DL_MODEL.upper(), 
-                               threshold_method=method, X_train=X_train, y_train=y_tr)
-            results.append({
-                'model': DL_MODEL,
-                'threshold_type': method,
-                **metrics
-            })
+            # Evaluation
+            print("--- Evaluation ---")
+            for method in ['youden', 'f1', 'cost']:
+                print(f"\n>>>> Threshold Method: {method.upper()}")
+                metrics = evaluate(model, X_test, y_te, dl_name.upper(), 
+                                   threshold_method=method, X_train=X_train, y_train=y_tr)
+                results.append({
+                    'model': dl_name,
+                    'threshold_type': method,
+                    **metrics
+                })
 
-        print("--- Error Analysis ---")
-        error_analysis(model, X_test, y_te, X_te_txt)
+            print(f"--- Error Analysis for {dl_name.upper()} ---")
+            error_analysis(model, X_test, y_te, X_te_txt)
 
     # -----------------------
     # SAVE RESULTS
