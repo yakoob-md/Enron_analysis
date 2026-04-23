@@ -21,7 +21,8 @@ import torch
 
 from configs.config import (
     MODE, DATA_PATH, MODEL_DIR, RESULTS_DIR,
-    NUM_CLASSES, CLASS_NAMES, EPOCHS, BATCH_SIZE, LR, MAX_LEN
+    NUM_CLASSES, CLASS_NAMES, EPOCHS, BATCH_SIZE, LR, MAX_LEN,
+    ML_MODELS, DL_MODELS
 )
 from preprocessing.preprocess import preprocess_multiclass
 from preprocessing.label_encoder import MultiClassLabelEncoder
@@ -50,11 +51,8 @@ def run_multiclass_pipeline():
     class_weights = get_class_weights(df['label_idx'].values)
     print("Class weights:", {CLASS_NAMES[k]: round(v, 3) for k, v in class_weights.items()})
 
-    # ── 4. Feature Engineering (ML only) ─────────────────────────────────────
-    if MODE == 'ml':
-        df = engineer_features(df)
-
-    # ── 5. Split ──────────────────────────────────────────────────────────────
+    # ── 4. Split ──────────────────────────────────────────────────────────────
+    # We split first to ensure all models use the exact same test set
     X_tv, X_te, y_tv, y_te = train_test_split(
         df['text_input'], df['label_idx'],
         test_size=0.15, random_state=42, stratify=df['label_idx']
@@ -65,19 +63,23 @@ def run_multiclass_pipeline():
     )
 
     results = []
+    
+    # Determine which modes to run
+    modes_to_run = ['ml', 'dl', 'bert'] if MODE == 'all' else [MODE]
 
     # ══════════════════════════════════════════════════════════════════════════
     # ML MODE
     # ══════════════════════════════════════════════════════════════════════════
-    if MODE == 'ml':
-        X_tr_hf = df.loc[X_tr.index, HAND_FEATURES]
-        X_va_hf = df.loc[X_va.index, HAND_FEATURES]
-        X_te_hf = df.loc[X_te.index, HAND_FEATURES]
+    if 'ml' in modes_to_run:
+        print("\n--- Starting ML Models ---")
+        df_ml = engineer_features(df)
+        X_tr_hf = df_ml.loc[X_tr.index, HAND_FEATURES]
+        X_te_hf = df_ml.loc[X_te.index, HAND_FEATURES]
 
         X_train, X_test, tfidf = vectorize_ml(X_tr, X_te, X_tr_hf, X_te_hf)
         joblib.dump(tfidf, f'{MODEL_DIR}/tfidf_multi.joblib')
 
-        for m_name in ['lr', 'rf', 'xgb']:
+        for m_name in ML_MODELS:
             print(f"\n{'='*50}")
             print(f"  Training {m_name.upper()}")
             print(f"{'='*50}")
@@ -97,7 +99,8 @@ def run_multiclass_pipeline():
     # ══════════════════════════════════════════════════════════════════════════
     # DL MODE — BiLSTM
     # ══════════════════════════════════════════════════════════════════════════
-    elif MODE == 'dl':
+    if 'dl' in modes_to_run:
+        print("\n--- Starting DL (BiLSTM) Model ---")
         from vectorizers.dl_vectorizer import vectorize as dl_vectorize
         from models.dl.bilstm import BiLSTMModelMulti
         from training.trainer import train_multiclass, predict_multiclass
@@ -134,7 +137,8 @@ def run_multiclass_pipeline():
     # ══════════════════════════════════════════════════════════════════════════
     # DL MODE — BERT
     # ══════════════════════════════════════════════════════════════════════════
-    elif MODE == 'bert':
+    if 'bert' in modes_to_run:
+        print("\n--- Starting BERT Model ---")
         from vectorizers.bert_vectorizer import vectorize as bert_vectorize
         from models.dl.bert_model import (
             get_bert_multiclass, train_bert_multiclass, predict_bert_multiclass
@@ -168,17 +172,20 @@ def run_multiclass_pipeline():
         results.append({'model': 'bert', **metrics})
 
     # ── Final Summary ─────────────────────────────────────────────────────────
-    res_df = pd.DataFrame(results)
-    print("\n=== FINAL MULTICLASS COMPARISON ===")
-    print(res_df[['model', 'accuracy', 'f1_macro', 'f1_weighted', 'roc_auc_macro']].to_string())
-    res_df.to_csv(f'{RESULTS_DIR}/multiclass_comparison.csv', index=False)
+    if results:
+        res_df = pd.DataFrame(results)
+        print("\n=== FINAL MULTICLASS COMPARISON ===")
+        print(res_df[['model', 'accuracy', 'f1_macro', 'f1_weighted', 'roc_auc_macro']].to_string())
+        res_df.to_csv(f'{RESULTS_DIR}/multiclass_comparison.csv', index=False)
 
-    # Save Model Comparison Table
-    from utils.table_visualizer import save_styled_table
-    table_dir = os.path.join(RESULTS_DIR, "tables")
-    save_styled_table(res_df, "multiclass_model_comparison.png", table_dir, "Multiclass Model Comparison")
-
-    return res_df
+        # Save Model Comparison Table
+        from utils.table_visualizer import save_styled_table
+        table_dir = os.path.join(RESULTS_DIR, "tables")
+        save_styled_table(res_df, "multiclass_model_comparison.png", table_dir, "Multiclass Model Comparison")
+        return res_df
+    else:
+        print("\n[WARN] No results collected. Check MODE in config.py")
+        return None
 
 
 if __name__ == "__main__":
