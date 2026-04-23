@@ -4,7 +4,7 @@ from transformers import PreTrainedModel
 from torch.utils.data import DataLoader, TensorDataset
 
 
-def error_analysis(model, X_test, y_test, X_text):
+def error_analysis(model, X_test, y_test, X_text, threshold=0.5):
 
     print("\n--- Phase 6: Error Analysis ---")
 
@@ -35,7 +35,7 @@ def error_analysis(model, X_test, y_test, X_text):
 
                 logits = outputs.logits.squeeze()
                 probs = torch.sigmoid(logits).cpu().numpy()
-                preds = (probs > 0.5).astype(int)
+                preds = (probs > threshold).astype(int)
 
                 all_preds.extend(preds)
 
@@ -53,7 +53,7 @@ def error_analysis(model, X_test, y_test, X_text):
             outputs = model(X_tensor).squeeze()
 
             y_prob = torch.sigmoid(outputs).cpu().numpy()
-            y_pred = (y_prob > 0.5).astype(int)
+            y_pred = (y_prob > threshold).astype(int)
 
     # ===============================
     # ML models

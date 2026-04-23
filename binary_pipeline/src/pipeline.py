@@ -158,7 +158,7 @@ def run_pipeline():
                 })
 
             print("--- Error Analysis ---")
-            error_analysis(model, X_test, y_te, X_te_txt)
+            error_analysis(model, X_test, y_te, X_te_txt, threshold=metrics['threshold'])
 
     # ===============================
     # DL MODE
@@ -212,7 +212,7 @@ def run_pipeline():
                 })
 
             print(f"--- Error Analysis for {dl_name.upper()} ---")
-            error_analysis(model, X_test, y_te, X_te_txt)
+            error_analysis(model, X_test, y_te, X_te_txt, threshold=metrics['threshold'])
 
     # -----------------------
     # SAVE RESULTS

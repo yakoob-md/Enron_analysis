@@ -13,6 +13,14 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import AutoModelForSequenceClassification, get_linear_schedule_with_warmup
+try:
+    from utils.focal_loss import MulticlassFocalLoss
+except ImportError:
+    # Fallback for different execution contexts
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+    from utils.focal_loss import MulticlassFocalLoss
 
 
 def get_bert_multiclass(num_labels=5):
@@ -30,7 +38,8 @@ def get_bert_multiclass(num_labels=5):
 
 def train_bert_multiclass(model, X_train, y_train, X_val, y_val,
                           epochs=3, batch_size=16, lr=2e-5,
-                          results_dir='results', class_weights=None):
+                          results_dir='results', class_weights=None,
+                          use_focal_loss=True):
     """
     Full training loop for multiclass BERT.
     
@@ -59,11 +68,19 @@ def train_bert_multiclass(model, X_train, y_train, X_val, y_val,
         num_training_steps=total_steps
     )
 
-    # ── Optional class-weighted loss (overrides HF internal loss) ────────────
+    # ── Build loss function ───────────────────────────────────────────────────
     if class_weights:
-        weight_list = [class_weights.get(i, 1.0) for i in range(max(class_weights) + 1)]
+        num_classes = max(class_weights.keys()) + 1
+        weight_list = [class_weights.get(i, 1.0) for i in range(num_classes)]
         weights_t   = torch.tensor(weight_list, dtype=torch.float).to(device)
-        criterion   = torch.nn.CrossEntropyLoss(weight=weights_t)
+    else:
+        weights_t = None
+
+    if use_focal_loss:
+        criterion = MulticlassFocalLoss(gamma=2.0, weight=weights_t)
+        use_custom_loss = True
+    elif class_weights:
+        criterion = torch.nn.CrossEntropyLoss(weight=weights_t)
         use_custom_loss = True
     else:
         use_custom_loss = False
