@@ -1,7 +1,9 @@
 # multiclass_pipeline/configs/config.py
 import os
 
-MODE = 'ml' # 'ml', 'dl', 'llm'
+MODE = 'all' # 'ml', 'dl', 'bert', or 'all'
+ML_MODELS = ['lr', 'rf', 'xgb']
+DL_MODELS = ['bilstm', 'bert']
 DATA_PATH = 'multiclass_pipeline/data/emails_labeled_silver_tenK.parquet'
 MODEL_DIR = 'multiclass_pipeline/saved_models'
 RESULTS_DIR = 'multiclass_pipeline/results'

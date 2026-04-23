@@ -6,7 +6,7 @@ from features.features import HAND_FEATURES
 
 def vectorize_ml(X_train_txt, X_test_txt, X_train_hf, X_test_hf):
     tfidf = TfidfVectorizer(
-        max_features=7000,
+        max_features=15000,
         ngram_range=(1, 2),
         min_df=3,
         max_df=0.95,

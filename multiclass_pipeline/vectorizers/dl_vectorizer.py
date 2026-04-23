@@ -8,11 +8,19 @@ except ImportError:
     VOCAB_SIZE = 10000
     MAX_LEN = 200
 
+import re
+
+def clean_text(text):
+    if not isinstance(text, str):
+        return ""
+    text = text.lower()
+    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
+    return text
+
 def build_vocab(texts, vocab_size):
     counter = Counter()
     for text in texts:
-        if isinstance(text, str):
-            counter.update(text.split())
+        counter.update(clean_text(text).split())
     
     most_common = counter.most_common(vocab_size - 2)
     word2idx = {"<PAD>": 0, "<UNK>": 1}
@@ -23,10 +31,8 @@ def build_vocab(texts, vocab_size):
 def encode(texts, word2idx, max_len):
     sequences = []
     for text in texts:
-        if isinstance(text, str):
-            seq = [word2idx.get(word, 1) for word in text.split()]
-        else:
-            seq = []
+        cleaned = clean_text(text)
+        seq = [word2idx.get(word, 1) for word in cleaned.split()]
         seq = seq[:max_len]
         seq += [0] * (max_len - len(seq))
         sequences.append(seq)
