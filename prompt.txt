@@ -1,15 +1,101 @@
-Here's the full breakdown of what was found and fixed across all 15 issues:
+chnages for bilstm - multiclass pipeline
+3. DL VECTORIZER (BiLSTM) — ⚠️ MAJOR ISSUE
 
-🔴 Binary Pipeline — Critical Bugs Found
-1. SVM probability=False (your "ROC-AUC: Not available" bug) — The SVM lacked probability=True, so predict_proba() threw an exception and the entire ROC/threshold analysis was silently skipped. Fixed.
-2. XGBoost scale_pos_weight=None — This is why XGBoost showed Non-Disclosure recall of only 0.31 despite 0.81 accuracy. The model almost never predicted class 0. For binary XGBoost, scale_pos_weight = neg_count / pos_count ≈ 0.35. Fixed by computing it from y_train at runtime.
-3. Missing class_weight on LR, RF, SVM — None of your ML models had class weighting. RF now uses balanced_subsample (per-tree balancing, better than global balanced).
-4. BERT missing warmup scheduler + gradient clipping — This directly explains the 465 False Positives vs 3 False Negatives — the model became overconfident/aggressive at predicting positive because large early gradients destabilized pre-trained weights. Fixed with get_linear_schedule_with_warmup and clip_grad_norm_(1.0).
-5. BiLSTM threshold hardcoded at 0.7 in phase6_error_analysis.py — Error analysis and evaluation use different thresholds, making FP/FN counts inconsistent. Fixed by passing threshold from evaluate().
+File:
 
-🟢 Multiclass Pipeline — Critical Bugs Found
-6. Missing sklearn imports in evaluator.py — classification_report, confusion_matrix, etc. are all used but never imported. The multiclass evaluator would crash immediately at runtime.
-7. Zero threshold analysis for multiclass — Binary had Youden/F1/G-Mean optimization. Multiclass had nothing. Implemented full One-vs-Rest per-class threshold optimization and a apply_multiclass_thresholds() function that falls back to argmax on ties.
-8. XGBoost scale_pos_weight in multiclass — Binary-only parameter, silently ignored in multiclass. Fixed by computing sample_weight from compute_sample_weight('balanced') and passing it to fit().
-9. No ROC curves for multiclass — Full plot_multiclass_roc() added: per-class OvR curves, macro interpolated AUC, and sklearn macro/weighted AUC.
-10. No Focal Loss — Plain CrossEntropyLoss doesn't address inter-class imbalance (NONE is likely your dominant class). MulticlassFocalLoss(gamma=2.0) added as a drop-in with label_smoothing=0.1 support.
+This is your biggest weakness right now
+
+❌ Problem 1: Very naive tokenization
+text.split()
+
+👉 Issues:
+
+No punctuation handling
+No lowercasing
+No normalization
+No OOV handling beyond <UNK>
+❌ Problem 2: No embedding awareness
+
+👉 You are using:
+
+Random integer encoding
+
+Instead of:
+
+Pretrained embeddings (GloVe, FastText)
+❌ Problem 3: Vocabulary quality is weak
+counter.update(text.split())
+
+👉 This:
+
+Includes noise words
+No filtering
+No stopword handling
+❌ Problem 4: No sequence masking
+
+Padding = 0, but:
+
+Model may learn padding noise
+🔥 FIX (VERY IMPORTANT)
+✅ Upgrade tokenization
+import re
+
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
+    return text
+
+Use:
+
+counter.update(clean_text(text).split())
+✅ Add pretrained embeddings (BIG IMPROVEMENT)
+
+Instead of random embeddings:
+
+embedding_matrix = load_glove_embeddings(word2idx)
+✅ Add padding mask (important for LSTM)
+
+In model:
+
+nn.Embedding(..., padding_idx=0)
+✅ Increase vocab size
+VOCAB_SIZE = 20000
+
+for ml - multiclass pipeline
+⚠️ Improvements
+❌ 1. max_features = 7000 (slightly low)
+
+👉 For multiclass:
+
+max_features = 15000
+❌ 2. No class-aware features
+
+👉 Your handcrafted features might not capture:
+
+class-specific signals
+
+for bert - mu;lticlass pipeline
+Issues
+❌ 1. No attention to class imbalance
+
+→ Not vectorizer’s job, but affects output quality
+
+❌ 2. MAX_LEN = 200 (maybe suboptimal)
+
+👉 Too large:
+
+Slower training
+Noise
+
+👉 Too small:
+
+Lose context
+✅ FIX
+MAX_LEN = 128  # try 128 first (standard)
+❌ 3. No batching optimization (minor)
+
+Currently:
+
+return_tensors="pt"
+
+👉 Fine, but you should move tensors to device later (not here)

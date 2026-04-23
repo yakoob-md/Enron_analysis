@@ -1,11 +1,17 @@
-# multiclass_pipeline/pipeline.py
-# FIXED + EXTENDED:
-#   - Full ML + DL (BiLSTM + BERT) support
-#   - Correct multiclass evaluation (ROC, per-class thresholds, CM)
-#   - Class weights passed everywhere
-#   - DL predictions return (y_pred, y_prob) via softmax
-
 import os
+import sys
+
+# ── PATH & IMPORT MANAGEMENT ──────────────────────────────────────────────────
+# Ensure we can import from multiclass_pipeline/ folders regardless of CWD
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+# Ensure the working directory is the project root (so relative paths in config work)
+project_root = os.path.dirname(script_dir)
+os.chdir(project_root)
+# ─────────────────────────────────────────────────────────────────────────────
+
 import pandas as pd
 import numpy as np
 import joblib
@@ -166,6 +172,12 @@ def run_multiclass_pipeline():
     print("\n=== FINAL MULTICLASS COMPARISON ===")
     print(res_df[['model', 'accuracy', 'f1_macro', 'f1_weighted', 'roc_auc_macro']].to_string())
     res_df.to_csv(f'{RESULTS_DIR}/multiclass_comparison.csv', index=False)
+
+    # Save Model Comparison Table
+    from utils.table_visualizer import save_styled_table
+    table_dir = os.path.join(RESULTS_DIR, "tables")
+    save_styled_table(res_df, "multiclass_model_comparison.png", table_dir, "Multiclass Model Comparison")
+
     return res_df
 
 
