@@ -24,24 +24,26 @@ wheels/
 # Virtual Environment
 pipeline_venv/
 venv/
+.venv/
 ENV/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-# Data and Models (Avoid pushing large binaries to GitHub)
-data/*.parquet
-data/*.csv
-data/*.json
-models/
+# Data and Models
+**/data/*.parquet
+**/data/*.csv
+**/data/*.json
+**/models/
+**/saved_models/
 *.joblib
 *.pt
 *.h5
 *.pkl
 
 # Results and Logs
-results/
+**/results/
 *.log
 *.png
 *.jpg
@@ -49,6 +51,5 @@ results/
 
 # Environments and Secrets
 .env
-.venv
 .vscode/
 .idea/
