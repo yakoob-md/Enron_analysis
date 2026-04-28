@@ -1,0 +1,48 @@
+============================================================
+  PHASE 1: BINARY ERROR ANALYSIS (Disclosure vs None)
+============================================================
+
+--- Model: LR (Binary) ---
+Stats  | FP: 83   | FN: 233  | Accuracy: 0.7891
+Sample FP: vasant so sorry for the name mix up it is you not vance another guy on my pr team who is to be included in this so sorry i d just gotten off the phone...
+Sample FN: g whatup dog how is enron treating you still enjoying the legal side of things everything here is going well marriage is still very good even blissful...
+
+--- Model: RF (Binary) ---
+Stats  | FP: 151  | FN: 69   | Accuracy: 0.8531
+Sample FP: vasant so sorry for the name mix up it is you not vance another guy on my pr team who is to be included in this so sorry i d just gotten off the phone...
+Sample FN: from khou tv s dr neil frank reliant energy w a r n wtnt knhc tcmat subtropical storm two forecast advisory number national weather service miami fl a...
+
+--- Model: XGB (Binary) ---
+Stats  | FP: 229  | FN: 23   | Accuracy: 0.8318
+Sample FP: vasant so sorry for the name mix up it is you not vance another guy on my pr team who is to be included in this so sorry i d just gotten off the phone...
+Sample FN: from khou tv s dr neil frank reliant energy w a r n wtnt knhc tcmat subtropical storm two forecast advisory number national weather service miami fl a...
+
+============================================================
+  PHASE 2: MULTICLASS ERROR ANALYSIS (Categorization)
+============================================================
+
+--- Model: LR (Multiclass) ---
+Stats  | Total Errors: 1384 | Accuracy: 0.0761
+  -> NONE      : FP: 96  | FN: 389
+  -> STRATEGIC : FP: 167 | FN: 393
+  -> RELATIONAL: FP: 353 | FN: 294
+  -> LEGAL     : FP: 338 | FN: 191
+  -> FINANCIAL : FP: 430 | FN: 117
+
+--- Model: RF (Multiclass) ---
+Stats  | Total Errors: 1408 | Accuracy: 0.0601
+  -> NONE      : FP: 76  | FN: 391
+  -> STRATEGIC : FP: 149 | FN: 414
+  -> RELATIONAL: FP: 365 | FN: 308
+  -> LEGAL     : FP: 309 | FN: 194
+  -> FINANCIAL : FP: 509 | FN: 101
+
+--- Model: XGB (Multiclass) ---
+Stats  | Total Errors: 1258 | Accuracy: 0.1602
+  -> NONE      : FP: 107 | FN: 379
+  -> STRATEGIC : FP: 452 | FN: 259
+  -> RELATIONAL: FP: 301 | FN: 283
+  -> LEGAL     : FP: 153 | FN: 197
+  -> FINANCIAL : FP: 245 | FN: 140
+
+>>> DIAGNOSTICS COMPLETE <<<

@@ -38,9 +38,14 @@ def encode(texts, word2idx, max_len):
         sequences.append(seq)
     return np.array(sequences)
 
-def vectorize(X_train_txt, X_test_txt):
+def vectorize(X_train_txt, X_test_txt, X_val_txt=None):
     print("PyTorch Vectorization (BiLSTM)...")
     word2idx = build_vocab(X_train_txt, VOCAB_SIZE)
     X_train = encode(X_train_txt, word2idx, MAX_LEN)
     X_test = encode(X_test_txt, word2idx, MAX_LEN)
+    
+    if X_val_txt is not None:
+        X_val = encode(X_val_txt, word2idx, MAX_LEN)
+        return X_train, X_test, X_val, word2idx
+        
     return X_train, X_test, word2idx

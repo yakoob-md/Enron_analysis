@@ -12,3 +12,6 @@ torchvision
 torchaudio
 
 transformers
+
+seaborn
+pyarrow

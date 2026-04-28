@@ -35,19 +35,35 @@ ENV/
 **/data/*.parquet
 **/data/*.csv
 **/data/*.json
-**/models/
 **/saved_models/
 *.joblib
 *.pt
 *.h5
 *.pkl
+*.safetensors
 
 # Results and Logs
 **/results/
 *.log
+
+# Images
 *.png
 *.jpg
 *.jpeg
+*.gif
+*.svg
+*.webp
+*.bmp
+*.tiff
+
+# Large Files & Documents
+*.pdf
+*.docx
+*.doc
+*.zip
+*.tar.gz
+*.7z
+*.rar
 
 # Environments and Secrets
 .env

@@ -21,15 +21,20 @@ import torch
 
 from configs.config import (
     MODE, DATA_PATH, MODEL_DIR, RESULTS_DIR,
-    NUM_CLASSES, CLASS_NAMES, EPOCHS, BATCH_SIZE, LR, MAX_LEN,
-    ML_MODELS, DL_MODELS
+    NUM_CLASSES, CLASS_NAMES, BATCH_SIZE, VOCAB_SIZE, MAX_LEN,
+    ML_MODELS, DL_MODELS,
+    EPOCHS_BERT, LR_BERT, EPOCHS_DL, LR_DL
 )
 from preprocessing.preprocess import preprocess_multiclass
 from preprocessing.label_encoder import MultiClassLabelEncoder
 from features.features import engineer_features, HAND_FEATURES
 from vectorizers.ml_vectorizer import vectorize_ml
 from models.ml.ml_models import get_model_ml, train_model_ml
-from evaluation.evaluator import evaluate_multiclass
+from evaluation.evaluator import (
+    evaluate_multiclass, 
+    plot_learning_curve_ml,
+    plot_feature_importance
+)
 from utils.class_weights import get_class_weights
 
 
@@ -92,8 +97,17 @@ def run_multiclass_pipeline():
 
             metrics = evaluate_multiclass(
                 y_te.values, y_pred, y_prob,
-                m_name.upper(), RESULTS_DIR, CLASS_NAMES
+                m_name.upper(), f'{RESULTS_DIR}/plots', CLASS_NAMES
             )
+            
+            # Learning Curve (ML models)
+            plot_learning_curve_ml(model, X_train, y_tr, m_name.upper(), f'{RESULTS_DIR}/plots')
+            
+            # Feature Importance (RF/XGB)
+            if hasattr(model, 'feature_importances_'):
+                f_names = list(tfidf.get_feature_names_out()) + HAND_FEATURES
+                plot_feature_importance(model, f_names, m_name.upper(), f'{RESULTS_DIR}/plots')
+            
             results.append({'model': m_name, **metrics})
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -105,8 +119,7 @@ def run_multiclass_pipeline():
         from models.dl.bilstm import BiLSTMModelMulti
         from training.trainer import train_multiclass, predict_multiclass
 
-        X_train_enc, X_test_enc, word2idx = dl_vectorize(X_tr, X_te)
-        X_val_enc,   _,          _        = dl_vectorize(X_tr, X_va)
+        X_train_enc, X_test_enc, X_val_enc, word2idx = dl_vectorize(X_tr, X_te, X_va)
 
         tr_ds  = TensorDataset(torch.tensor(X_train_enc, dtype=torch.long),
                                torch.tensor(y_tr.values, dtype=torch.long))
@@ -119,8 +132,8 @@ def run_multiclass_pipeline():
         model = train_multiclass(
             model, tr_loader, va_loader,
             class_weights=class_weights,
-            epochs=EPOCHS, lr=LR,
-            model_name='bilstm_multi',
+            epochs=EPOCHS_DL, lr=LR_DL,
+            model_name='bilstm',
             results_dir=RESULTS_DIR,
             use_focal_loss=True,
             label_smoothing=0.1
@@ -130,7 +143,7 @@ def run_multiclass_pipeline():
         y_pred, y_prob = predict_multiclass(model, X_test_enc)
         metrics = evaluate_multiclass(
             y_te.values, y_pred, y_prob,
-            'BiLSTM', RESULTS_DIR, CLASS_NAMES
+            'BiLSTM', f'{RESULTS_DIR}/plots', CLASS_NAMES
         )
         results.append({'model': 'bilstm', **metrics})
 
@@ -144,8 +157,7 @@ def run_multiclass_pipeline():
             get_bert_multiclass, train_bert_multiclass, predict_bert_multiclass
         )
 
-        X_train_enc, X_test_enc, tokenizer = bert_vectorize(X_tr, X_te)
-        X_val_enc,   _,          _         = bert_vectorize(X_tr, X_va)
+        X_train_enc, X_test_enc, X_val_enc, tokenizer = bert_vectorize(X_tr, X_te, X_va)
         joblib.dump(tokenizer, f'{MODEL_DIR}/tokenizer_multi.joblib')
 
         bert_path = f'{MODEL_DIR}/bert_multiclass'
@@ -158,7 +170,7 @@ def run_multiclass_pipeline():
             model = get_bert_multiclass(num_labels=NUM_CLASSES)
             model = train_bert_multiclass(
                 model, X_train_enc, y_tr, X_val_enc, y_va,
-                epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LR,
+                epochs=EPOCHS_BERT, batch_size=BATCH_SIZE, lr=LR_BERT,
                 results_dir=RESULTS_DIR,
                 class_weights=class_weights
             )
@@ -167,7 +179,7 @@ def run_multiclass_pipeline():
         y_pred, y_prob = predict_bert_multiclass(model, X_test_enc)
         metrics = evaluate_multiclass(
             y_te.values, y_pred, y_prob,
-            'BERT', RESULTS_DIR, CLASS_NAMES
+            'BERT', f'{RESULTS_DIR}/plots', CLASS_NAMES
         )
         results.append({'model': 'bert', **metrics})
 

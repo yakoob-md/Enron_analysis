@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import random
 import json
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm import tqdm
 
 from utils.focal_loss import MulticlassFocalLoss
 
@@ -49,6 +50,8 @@ def train_multiclass(model, train_loader, val_loader,
     os.makedirs(results_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
+    print(f"\n[BiLSTM] Device: {device} | GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'}")
+    print(f"[BiLSTM] Training for {epochs} epochs | Batch Size: {train_loader.batch_size} | LR: {lr}")
 
     # ── Build loss function ───────────────────────────────────────────────────
     if class_weights is not None:
@@ -82,7 +85,8 @@ def train_multiclass(model, train_loader, val_loader,
         # ── Train ────────────────────────────────────────────────────────────
         model.train()
         batch_losses, batch_accs = [], []
-        for xb, yb in train_loader:
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}")
+        for xb, yb in pbar:
             xb, yb = xb.to(device), yb.to(device).long()
             optimizer.zero_grad()
             logits = model(xb)
@@ -93,6 +97,7 @@ def train_multiclass(model, train_loader, val_loader,
             preds = torch.argmax(logits, dim=1)
             batch_losses.append(loss.item())
             batch_accs.append((preds == yb).float().mean().item())
+            pbar.set_postfix({'loss': f"{loss.item():.4f}"})
 
         # ── Validate ─────────────────────────────────────────────────────────
         model.eval()

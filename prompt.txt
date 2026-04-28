@@ -1,101 +1,125 @@
-chnages for bilstm - multiclass pipeline
-3. DL VECTORIZER (BiLSTM) — ⚠️ MAJOR ISSUE
+You are an expert academic evaluator and research reviewer.
 
-File:
+I will provide:
+1. A project report (PDF/DOCX)
+2. A collection of graphs, charts, and images (JPG/PNG)
 
-This is your biggest weakness right now
+Your task is to critically evaluate ALL the visuals in relation to the report.
 
-❌ Problem 1: Very naive tokenization
-text.split()
+-----------------------------------
+CORE OBJECTIVE
+-----------------------------------
 
-👉 Issues:
+Your goal is to determine:
+- Which visuals are CORRECT and meaningful
+- Which visuals are MISLEADING, WEAK, or IRRELEVANT
+- Which visuals actually demonstrate the TRUE strength of the project
 
-No punctuation handling
-No lowercasing
-No normalization
-No OOV handling beyond <UNK>
-❌ Problem 2: No embedding awareness
+You must think like a strict professor evaluating a final-year or research-level submission.
 
-👉 You are using:
+-----------------------------------
+EVALUATION CRITERIA
+-----------------------------------
 
-Random integer encoding
+For EACH visual, analyze:
 
-Instead of:
+1. CORRECTNESS
+- Is the graph technically correct?
+- Are axes labeled properly?
+- Is the data representation valid?
 
-Pretrained embeddings (GloVe, FastText)
-❌ Problem 3: Vocabulary quality is weak
-counter.update(text.split())
+2. RELEVANCE
+- Does this visual support any claim in the report?
+- Or is it unnecessary/noise?
 
-👉 This:
+3. INTERPRETATION
+- Does the graph actually prove anything meaningful?
+- Or is it superficial?
 
-Includes noise words
-No filtering
-No stopword handling
-❌ Problem 4: No sequence masking
+4. ALIGNMENT WITH REPORT
+- Where (which section) does this belong?
+- Does the report already reference it properly?
 
-Padding = 0, but:
+5. PROJECT STRENGTH SIGNAL
+- Does this graph highlight:
+  - model performance?
+  - comparison with baselines?
+  - real contribution?
+- Or is it weak/irrelevant?
 
-Model may learn padding noise
-🔥 FIX (VERY IMPORTANT)
-✅ Upgrade tokenization
-import re
+-----------------------------------
+OUTPUT FORMAT (VERY IMPORTANT)
+-----------------------------------
 
-def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z0-9 ]', '', text)
-    return text
+Respond in this EXACT structure:
 
-Use:
+-----------------------------------
+1. OVERALL VISUAL QUALITY VERDICT
+-----------------------------------
+- Strong / Average / Weak
+- Justify clearly
 
-counter.update(clean_text(text).split())
-✅ Add pretrained embeddings (BIG IMPROVEMENT)
+-----------------------------------
+2. VISUAL-BY-VISUAL ANALYSIS
+-----------------------------------
 
-Instead of random embeddings:
+For each image:
 
-embedding_matrix = load_glove_embeddings(word2idx)
-✅ Add padding mask (important for LSTM)
+[Image Name / Number]
 
-In model:
+- Correctness: (Correct / Minor Issues / Incorrect)
+- Verdict: (KEEP / REMOVE / FIX)
+- Why:
+- What it actually shows:
+- Issues (if any):
+- Where to place in report:
+- Suggested caption/explanation:
 
-nn.Embedding(..., padding_idx=0)
-✅ Increase vocab size
-VOCAB_SIZE = 20000
+-----------------------------------
+3. BEST VISUALS (MOST IMPORTANT)
+-----------------------------------
 
-for ml - multiclass pipeline
-⚠️ Improvements
-❌ 1. max_features = 7000 (slightly low)
+List the TOP visuals that:
+- Clearly demonstrate the project’s strength
+- Should DEFINITELY be included
 
-👉 For multiclass:
+Explain WHY each one is strong.
 
-max_features = 15000
-❌ 2. No class-aware features
+-----------------------------------
+4. VISUALS TO REMOVE
+-----------------------------------
 
-👉 Your handcrafted features might not capture:
+List visuals that:
+- Are misleading
+- Add no value
+- May weaken the report
 
-class-specific signals
+-----------------------------------
+5. MISSING VISUALS (CRITICAL)
+-----------------------------------
 
-for bert - mu;lticlass pipeline
-Issues
-❌ 1. No attention to class imbalance
+Suggest important graphs that SHOULD exist but are missing, such as:
+- Confusion matrix
+- Model comparison
+- Loss curves
+- Threshold analysis
+- Any other important evaluation plots
 
-→ Not vectorizer’s job, but affects output quality
+-----------------------------------
+6. FINAL RECOMMENDATION
+-----------------------------------
 
-❌ 2. MAX_LEN = 200 (maybe suboptimal)
+- How to improve the visual section overall
+- What changes would make the report look strong academically
 
-👉 Too large:
+-----------------------------------
+IMPORTANT RULES
+-----------------------------------
 
-Slower training
-Noise
+- Be brutally honest and critical
+- Do NOT be polite or vague
+- Do NOT assume visuals are correct — verify logically
+- Focus on academic rigor, not presentation alone
+- Think like a professor deciding grades
 
-👉 Too small:
-
-Lose context
-✅ FIX
-MAX_LEN = 128  # try 128 first (standard)
-❌ 3. No batching optimization (minor)
-
-Currently:
-
-return_tensors="pt"
-
-👉 Fine, but you should move tensors to device later (not here)
+Your goal is to ensure only the most correct, meaningful, and high-impact visuals are included in the report.

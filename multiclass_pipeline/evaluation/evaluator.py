@@ -20,6 +20,7 @@ from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score
 )
 from sklearn.preprocessing import label_binarize
+from sklearn.model_selection import learning_curve
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ def find_best_threshold_ovr(y_true_bin, y_prob_col, method='f1'):
     return float(roc_thresh[idx]), 0.0
 
 
-def optimize_multiclass_thresholds(y_true, y_prob, class_names, method='f1'):
+def optimize_multiclass_thresholds(y_true, y_prob, class_names, results_dir, method='f1'):
     """
     Run OvR threshold optimization for every class.
 
@@ -78,7 +79,37 @@ def optimize_multiclass_thresholds(y_true, y_prob, class_names, method='f1'):
         summary.append({'class': name, 'threshold': t, 'ovr_f1': f1})
         print(f"  {name:<18} {t:>10.4f} {f1:>10.4f}")
 
+    # Plot threshold search
+    plot_multiclass_threshold_search(y_true, y_prob, class_names, method, results_dir)
+
     return thresholds, summary
+
+
+def plot_multiclass_threshold_search(y_true, y_prob, class_names, method, results_dir):
+    """
+    Plots F1 vs Threshold for all classes in a single figure.
+    """
+    n_classes = len(class_names)
+    y_bin = label_binarize(y_true, classes=list(range(n_classes)))
+    
+    plt.figure(figsize=(10, 6))
+    colors = plt.cm.tab10(np.linspace(0, 1, n_classes))
+    
+    for i, (name, color) in enumerate(zip(class_names, colors)):
+        precisions, recalls, thresholds = precision_recall_curve(y_bin[:, i], y_prob[:, i])
+        f1s = 2 * precisions * recalls / (precisions + recalls + 1e-8)
+        # thresholds is 1 shorter than precisions/recalls
+        plt.plot(thresholds, f1s[:-1], color=color, label=f'{name}')
+        
+    plt.axvline(x=0.5, color='gray', linestyle='--', alpha=0.5, label='Default (0.5)')
+    plt.xlabel('Threshold')
+    plt.ylabel(f'OvR {method.upper()}')
+    plt.title(f'Threshold vs {method.upper()} — All Classes')
+    plt.legend(loc='best', fontsize=8)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f'{results_dir}/threshold_search_multiclass.png', dpi=150)
+    plt.close()
 
 
 def apply_multiclass_thresholds(y_prob, thresholds, class_names):
@@ -163,6 +194,94 @@ def plot_multiclass_roc(y_true, y_prob, class_names, model_name, results_dir):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# PRECISION-RECALL — One-vs-Rest
+# ─────────────────────────────────────────────────────────────────────────────
+def plot_multiclass_pr_curve(y_true, y_prob, class_names, model_name, results_dir):
+    os.makedirs(results_dir, exist_ok=True)
+    n_classes = len(class_names)
+    y_bin = label_binarize(y_true, classes=list(range(n_classes)))
+
+    plt.figure(figsize=(9, 7))
+    colors = plt.cm.tab10(np.linspace(0, 1, n_classes))
+
+    for i, (name, color) in enumerate(zip(class_names, colors)):
+        precision, recall, _ = precision_recall_curve(y_bin[:, i], y_prob[:, i])
+        avg_precision = average_precision_score(y_bin[:, i], y_prob[:, i])
+        plt.plot(recall, precision, color=color, lw=1.5,
+                 label=f'{name} (AP={avg_precision:.3f})')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title(f'Multiclass OvR Precision-Recall — {model_name}')
+    plt.legend(loc='lower left', fontsize=8)
+    plt.tight_layout()
+    plt.savefig(f'{results_dir}/pr_multiclass_{model_name.lower()}.png', dpi=150)
+    plt.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LEARNING CURVES
+# ─────────────────────────────────────────────────────────────────────────────
+def plot_learning_curve_ml(model, X, y, model_name, results_dir):
+    """
+    Plots learning curves for traditional ML models.
+    """
+    os.makedirs(results_dir, exist_ok=True)
+    print(f"  Generating learning curve for {model_name}...")
+    
+    train_sizes, train_scores, test_scores = learning_curve(
+        model, X, y, cv=3, n_jobs=-1, 
+        train_sizes=np.linspace(0.1, 1.0, 5),
+        scoring='f1_macro'
+    )
+    
+    train_mean = np.mean(train_scores, axis=1)
+    train_std  = np.std(train_scores, axis=1)
+    test_mean  = np.mean(test_scores, axis=1)
+    test_std   = np.std(test_scores, axis=1)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(train_sizes, train_mean, 'o-', color="r", label="Training score")
+    plt.plot(train_sizes, test_mean, 'o-', color="g", label="Cross-validation score")
+    plt.fill_between(train_sizes, train_mean - train_std, train_mean + train_std, alpha=0.1, color="r")
+    plt.fill_between(train_sizes, test_mean - test_std, test_mean + test_std, alpha=0.1, color="g")
+    
+    plt.xlabel("Training Examples")
+    plt.ylabel("F1 Macro")
+    plt.title(f"Learning Curve — {model_name}")
+    plt.legend(loc="best")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f'{results_dir}/learning_{model_name.lower()}.png', dpi=150)
+    plt.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FEATURE IMPORTANCE
+# ─────────────────────────────────────────────────────────────────────────────
+def plot_feature_importance(model, feature_names, model_name, results_dir, top_n=20):
+    """
+    Plots top N features for tree-based models.
+    """
+    os.makedirs(results_dir, exist_ok=True)
+    if not hasattr(model, 'feature_importances_'):
+        return
+
+    importances = model.feature_importances_
+    indices = np.argsort(importances)[::-1][:top_n]
+    
+    plt.figure(figsize=(10, 8))
+    plt.title(f"Feature Importances — {model_name}")
+    plt.barh(range(len(indices)), importances[indices], color='skyblue', align='center')
+    plt.yticks(range(len(indices)), [feature_names[i] for i in indices])
+    plt.xlabel('Relative Importance')
+    plt.gca().invert_yaxis()
+    plt.tight_layout()
+    plt.savefig(f'{results_dir}/features_{model_name.lower()}.png', dpi=150)
+    plt.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CONFUSION MATRIX
 # ─────────────────────────────────────────────────────────────────────────────
 def plot_multiclass_cm(y_true, y_pred, class_names, model_name, results_dir):
@@ -203,7 +322,7 @@ def evaluate_multiclass(y_true, y_pred, y_prob, model_name,
 
     # ── Threshold optimization ────────────────────────────────────────────────
     thresholds, _ = optimize_multiclass_thresholds(
-        y_true, y_prob, class_names, method=threshold_method
+        y_true, y_prob, class_names, results_dir, method=threshold_method
     )
     y_pred_tuned = apply_multiclass_thresholds(y_prob, thresholds, class_names)
 
@@ -216,8 +335,9 @@ def evaluate_multiclass(y_true, y_pred, y_prob, model_name,
     plot_multiclass_cm(y_true, y_pred,       class_names, f'{model_name}_argmax', results_dir)
     plot_multiclass_cm(y_true, y_pred_tuned, class_names, f'{model_name}_tuned',  results_dir)
 
-    # ── ROC curves ───────────────────────────────────────────────────────────
+    # ── ROC & PR curves ───────────────────────────────────────────────────────
     auc_dict = plot_multiclass_roc(y_true, y_prob, class_names, model_name, results_dir)
+    plot_multiclass_pr_curve(y_true, y_prob, class_names, model_name, results_dir)
 
     print("\n  Per-class AUC (OvR):")
     for name in class_names:

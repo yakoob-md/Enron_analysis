@@ -15,7 +15,6 @@ from sklearn.utils.class_weight import compute_sample_weight
 def get_model_ml(name, num_classes=5):
     if name == 'lr':
         return LogisticRegression(
-            multi_class='multinomial',
             solver='lbfgs',
             C=1.0,
             class_weight='balanced',

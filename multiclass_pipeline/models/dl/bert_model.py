@@ -13,6 +13,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import AutoModelForSequenceClassification, get_linear_schedule_with_warmup
+from tqdm import tqdm
 try:
     from utils.focal_loss import MulticlassFocalLoss
 except ImportError:
@@ -49,6 +50,8 @@ def train_bert_multiclass(model, X_train, y_train, X_val, y_val,
     os.makedirs(results_dir, exist_ok=True)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
+    print(f"\n[BERT] Device: {device} | GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'N/A'}")
+    print(f"[BERT] Training for {epochs} epochs | Batch Size: {batch_size} | LR: {lr}")
 
     # ── DataLoaders ──────────────────────────────────────────────────────────
     y_tr = torch.tensor(y_train.values if hasattr(y_train, 'values') else y_train, dtype=torch.long)
@@ -93,7 +96,8 @@ def train_bert_multiclass(model, X_train, y_train, X_val, y_val,
         # ── Train ────────────────────────────────────────────────────────────
         model.train()
         ep_losses = []
-        for ids, mask, labels in train_loader:
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}")
+        for ids, mask, labels in pbar:
             ids, mask, labels = ids.to(device), mask.to(device), labels.to(device)
             optimizer.zero_grad()
 
@@ -109,6 +113,7 @@ def train_bert_multiclass(model, X_train, y_train, X_val, y_val,
             optimizer.step()
             scheduler.step()
             ep_losses.append(loss.item())
+            pbar.set_postfix({'loss': f"{loss.item():.4f}"})
 
         # ── Validate ─────────────────────────────────────────────────────────
         model.eval()
