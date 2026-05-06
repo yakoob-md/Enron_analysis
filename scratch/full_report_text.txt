@@ -1,0 +1,180 @@
+Project Report
+ Enron Email Disclosure Analysis
+ SUBMITTED IN THE PARTIAL FULFILLMENT REQUIREMENT FOR THE AWARD OF DEGREE OF
+Bachelor of Technology
+(Computer Science and Engineering)
+SUBMITTED BY
+Shruti Keshri-230862
+Ayush Pratap singh-230881
+Vanshik Soni-230887
+Mohammad Yakub-230477
+UNDER THE SUPERVISION OF
+Dr. Atul Mishra
+School of Engineering and Technology  
+
+BML MUNJAL UNIVERSITY Gurugram, 
+Haryana - 122413
+MAY-2026
+1. Introduction 
+Emails are one of the most common ways people and organizations communicate, and businesses receive a huge number of them every day. Out of all these messages, only a small percentage contain sensitive or high-priority information such as legal matters, financial decisions, or strategic updates. Reviewing every email manually is both time-consuming and unrealistic, which creates a clear need for automated systems that can identify the messages that truly matter. This is where Natural Language Processing (NLP) becomes especially useful, as it can turn large volumes of email data into meaningful insights that support smarter decision-making and better risk management.
+The main intention of this project is to evaluate how different Artificial Intelligence models can identify important disclosures within email communication. Instead of relying on a single technique, we explored a combination of methods. The proposed system works in two stages. In the first stage, it checks whether an email contains any type of disclosure. If a disclosure is found, the second stage then classifies the email into specific categories such as legal or financial disclosures. To determine the most effective solution, we compared traditional machine learning models like Logistic Regression with advanced deep learning models such as BERT, which are better at understanding the deeper context and meaning of text.
+This problem is especially important in the corporate world. Missing even a single critical email—particularly one related to legal matters or financial risks—can result in serious consequences such as regulatory penalties or financial losses. By automating this process, organizations can reduce manual effort and make sure important communications are not missed. In many ways, systems like this act as an intelligent monitoring tool, helping the right information reach the right people at the right time.
+However, working with email data also presents several challenges. One major issue is that important emails are relatively rare compared to regular communication, creating a class imbalance problem. In addition, business language is often ambiguous. For example, the word “lead” may refer to a person, a leadership role, or a business opportunity depending on the context. Another limitation is that the dataset used in this study is based on the Enron scandal, meaning the models must generalize effectively rather than simply memorizing patterns from that specific time period.
+To address these challenges, we developed a structured processing pipeline. The emails were first cleaned by removing unnecessary elements such as links and by standardizing numerical values. Once the preprocessing stage was completed, features were extracted using both TF-IDF, which captures word frequency patterns, and BERT embeddings, which help the model understand contextual meaning more effectively. In addition, a cost-sensitive training approach was applied so that the system focused on correctly identifying important email disclosures rather than only minimizing false alarms.
+The remainder of this report is organized to present the complete workflow and findings of the email study. The next section reviews existing research related to this topic, followed by a detailed explanation of the methodology used in this study. After that, the results section compares the performance of different Artificial Intelligence models, and the conclusion highlights the key findings while suggesting possible directions for future research in email communication.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2. Literature Review 
+The literature review examines previous studies that are relevant to our research. The main purpose of this section is to understand how previous researchers have used computational methods to analyze communication, identify signs of organizational distress, and detect dishonest behavior in digital interactions. By reviewing these studies, we can gain valuable insights into the technical foundations of extracting meaningful information and identifying patterns from unstructured text and social networks. These insights are essential for developing an effective system capable of detecting concealed or sensitive disclosures.
+Researchers in this field have applied various computational techniques to extract useful insights from large volumes of digital data. Their work demonstrates how machine learning and data analysis can be used to identify deception, detect crises, and better understand communication patterns.
+Some of the most widely used methods include Support Vector Machines (SVM) for detecting deceptive behavior, Latent Dirichlet Allocation (LDA) for identifying topics during health emergencies, Centrality Measures for recognizing influential individuals within communication networks, Sentiment Analysis for tracking emotions in workplace emails, and Learning to Rank models for prioritizing important messages. Each of these methods serves a different purpose depending on the specific problem being addressed.
+These techniques are generally applied to three major datasets.
+One of the most widely used is the Enron Email Corpus, which is considered highly valuable for studying organizational communication. Another common source is Twitter data streams, often used for real-time event and disease monitoring. Researchers have also used Identity Deception Datasets, which contain around 600 examples of genuine and fake identities for studying online impersonation.
+The relationship between these methods and datasets is highly practical. For example, Centrality Measures applied to the Enron Email Corpus have shown that during periods of crisis, communication networks often become more centralized around a few key individuals. This suggests that decision-making and information flow tend to concentrate when organizations face uncertainty.
+Similarly, Support Vector Machines (SVM) have been applied to Identity Deception Datasets to identify cases where individuals misrepresent characteristics such as gender, achieving accuracy rates of up to 88%. This highlights the strong potential of machine learning techniques in detecting deceptive behavior in online environments.
+
+The relationship between these methods and the datasets is very important. Support Vector Machines and Identity Deception Datasets are used together to detect deception. Centrality Measures and the Enron dataset are used together to study communication networks. Latent Dirichlet Allocation and Twitter data are used together to study health threats. By using these methods and datasets we can build a system to detect when people are hiding something. The literature review helps us understand how other researchers have used these methods and datasets and how we can use them to build our system.
+
+3. Methodology 
+Our proposed methodology is based on a comprehensive and highly modular Natural Language Processing (NLP) pipeline. The main objective of this system is to automatically read, understand, and classify corporate disclosures found within the Enron email corpus. The pipeline was designed to process a dataset of approximately ten thousand silver-labeled emails. Each email contains seventeen different columns of metadata and textual content, which are used as inputs for analysis.
+One of the major challenges in this project is the uneven distribution of the data. There is a significant imbalance both in the categories being predicted and in the timeline of the emails. Since most corporate emails involve routine communication, genuine disclosures are relatively uncommon. In addition, the number of emails increases sharply during the crisis period in late 2001.
+To build a reliable detection system capable of handling these challenges, we divided the overall architecture into two parallel and complementary pipelines. The first is the Binary Pipeline, which acts as an initial filtering stage. The second is the Multiclass Pipeline, which is responsible for more detailed and complex categorization tasks.
+
+3.1 Pipeline Architectures
+The foundation of our system is based on a dual-pipeline approach, where each pipeline is carefully designed to solve a specific part of the disclosure detection problem.
+The Binary Classification Pipeline serves as the first stage of analysis. Its main purpose is to determine whether an email contains a disclosure or is simply a routine, non-disclosure message. By treating this as a straightforward yes-or-no task, the system can efficiently filter out the large volume of everyday business communication and focus only on emails that may require closer attention.
+Once an email is identified as a potential disclosure, it moves to the second stage of the architecture, known as the Multiclass Classification Pipeline. Instead of making only a binary decision, this stage classifies the email into one of five functional categories: Strategic, Legal, Financial, Relational, or None.
+This two-stage approach allows the system to accurately remove irrelevant noise while also providing detailed and actionable classifications for the emails that are genuinely important.
+
+3.1.1 Binary Disclosure Pipeline: 
+
+
+
+Text Preprocessing: The system begins by carefully cleaning the dataset to remove Enron-specific noise and other irrelevant content. It also removes extreme outliers, such as emails containing more than 2,000 words, to prevent memory bottlenecks during the deep learning stages.
+Dual Vectorization: After preprocessing, the architecture divides into two parallel processing tracks. The machine learning track extracts handcrafted domain-specific signals, such as disclosure ratios and the frequency of legal or financial keywords, and combines them with TF-IDF features for improved performance.
+ Meanwhile, the deep learning track relies entirely on context-aware BERT tokenization to capture deeper semantic meaning from the text.
+Dynamic Threshold Optimization: Since the Enron dataset contains severe temporal class imbalance, with large spikes during the SEC investigation period, the pipeline does not depend on the standard 0.5 decision threshold. Instead, it dynamically adjusts the threshold using F1-score optimization and Youden’s J statistic. This helps maximize the detection of genuine legal and financial disclosures while reducing unnecessary false positives.
+3.1.2 Multiclass Disclosure Pipeline:
+
+
+
+Label Encoding: Instead of using a simple yes-or-no classification, emails are encoded into more specific corporate categories: Strategic, Legal, Financial, Relational, or None. This allows the system to provide more meaningful and detailed predictions.
+Imbalance Mitigation (Class Weights and Focal Loss): The Enron dataset is highly imbalanced, with significantly more Strategic or None emails than Legal emails. To prevent the model from overlooking minority classes, this stage applies balanced Class Weights for machine learning models and Focal Loss with Label Smoothing for deep learning models. These techniques help penalize the model when it fails to identify rare but important disclosure categories.
+Multi-Class Prediction Head: The final layer produces a softmax probability distribution across all five classes, enabling the system to determine the exact category of each corporate communication.
+
+3.2 Data Ingestion, Cleaning, and Temporal Imbalance Handling
+The pipeline begins by ingesting raw parquet data from emails_labeled_silver_tenK.parquet. Since the dataset shows severe temporal imbalance, with email volume increasing sharply during the SEC investigation in October 2001, preprocessing is designed to reduce potential time-based biases.
+Outlier Removal: Emails containing more than 2,000 words are removed to prevent memory overload during the deep learning stages.
+Text Normalization: All text is converted to lowercase, while regular expressions are used to remove URLs, email addresses, and punctuation.
+Entity Replacement: Specific numerical values are replaced with a generic NUM tag. This encourages the models to learn the financial meaning and context of a sentence rather than memorizing historical figures or exact amounts.
+Deduplication: A strict deduplication process is applied to ensure identical email texts do not appear across both training and testing splits, helping maintain fair model evaluation.
+
+3.3 Feature Engineering and Vectorization
+To combine the strengths of traditional Machine Learning and Deep Learning, we developed dense, domain-specific features. The machine learning track uses these handcrafted signals together with TF-IDF vectors, allowing the model to capture both statistical patterns and expert-designed indicators. In contrast, the deep learning track based on BERT relies on WordPiece tokenization and contextual embeddings to understand language meaning more effectively.
+Table 1: Key Handcrafted Linguistic Features (ML Pipeline)
+3.4 Modeling Strategy and Imbalance Mitigation
+The project compares traditional machine learning algorithms such as Logistic Regression, Random Forest, SVM, and XGBoost with deep learning models including BiLSTM and BERT. This comparison helps evaluate how well conventional approaches perform against more advanced neural network architectures.
+Since the dataset is heavily imbalanced toward Non-Disclosure in the binary task and None or Relational in the multiclass task, standard cross-entropy loss functions and default probability thresholds of 0.5 are not effective. To address this issue, several optimization techniques were applied.
+Dynamic Threshold Optimization (Binary): Instead of using the default 0.5 decision boundary, the pipeline analyzes predicted probability distributions and iteratively identifies the optimal threshold using methods such as Youden’s J statistic, F1-score optimization, and custom cost functions.
+Class Weights and Focal Loss (Multiclass): To prevent the model from ignoring minority classes, the algorithms apply class weights and focal loss. These methods penalize confident misclassifications of rare categories such as Legal and Financial. In addition, Label Smoothing (0.1) is used to improve generalization and reduce overconfidence in predictions.
+
+3.5 Mathematical Formulations
+The methodology is based on three key mathematical foundations that determine how textual data is transformed into numerical representations and how the model is optimized.
+First, the system uses the TF-IDF (Term Frequency–Inverse Document Frequency) technique to measure the statistical importance of specific words and bigrams within the emails. This method helps highlight terms that appear frequently in a particular email but are less common across the full dataset, making them more informative for classification.
+This is calculated using the formula:
+
+In this equation, ( w_{t,d} ) represents the final weight assigned to a term, where ( tf_{t,d} ) is the number of times the term appears in a specific email, ( N ) is the total number of emails in the dataset, and ( df_t ) is the number of documents that contain that term.
+Second, the training of the BERT classification head is based on the Cross-Entropy Loss function. This function evaluates model performance by measuring the difference between the predicted probability distribution and the actual ground-truth label. Larger errors receive higher penalties, encouraging the model to make more accurate predictions during training.
+This is expressed as:
+
+Where yi is the actual label and pi is the predicted probability. Finally, to evaluate success in the face of class imbalance, the project utilizes the F1-Score, the harmonic mean of Precision and Recall, calculated as:
+
+This ensures the model maintains a balance between finding all real disclosures and ensuring that the flagged emails are actually relevant.
+
+
+
+
+
+
+
+
+
+
+4. Performance and Results 
+We evaluated our models on both binary and multiclass classification tasks using standard performance metrics, including accuracy, precision, recall, and F1-score. In addition, ROC-AUC and Precision-Recall (PR) curves were used to provide a more detailed assessment of model performance, especially in the presence of class imbalance.
+This section presents the key visual results and performance metrics from the project, with particular emphasis on the best-performing architectures and the techniques used to address the challenges posed by the dataset.
+
+4.1 Binary Classification: Traditional ML vs. DL
+The primary objective of the binary classification task was to serve as an effective filtering stage, separating critical corporate disclosures from routine, everyday emails.
+When working with a highly imbalanced dataset such as the Enron corpus, relying solely on standard accuracy can be misleading. Since routine emails greatly outnumber genuine disclosures, a model could predict every email as routine and still achieve a high accuracy score. However, such a model would fail to identify the important messages the system is designed to detect.
+To address this issue, our evaluation focused less on basic accuracy and more on Precision-Recall metrics and cost-sensitive performance measures. This approach ensured that the models were genuinely capable of detecting hidden disclosures while keeping false alarms at a manageable level.
+4.1.1 Model Performance Overview
+Our experiments revealed a clear performance gap between baseline models and more advanced architectures. Among the traditional machine learning approaches, XGBoost consistently outperformed SVM and Logistic Regression, mainly because it was better able to capture non-linear relationships within the sparse TF-IDF feature space.
+However, the strongest overall performance came from deep learning models, particularly BERT. BERT demonstrated superior contextual understanding, showing that pre-trained attention-based architectures are significantly more effective at interpreting the subtle and often indirect language used in corporate disclosures.
+
+Figure 1: Binary Model Comparison. This table explicitly highlights the dramatic improvements gained by shifting from standard thresholding (Youden) to Cost-Sensitive thresholds. By heavily penalizing False Negatives, we optimized for Recall (the critical metric for fraud detection), with XGBoost achieving an exceptional 0.9801 Recall.
+4.1.2 The Power of Precision-Recall
+For highly skewed datasets where routine emails heavily outnumber true disclosures, the Precision-Recall (PR) curve is the most rigorous diagnostic tool.
+
+Figure 2: Precision-Recall Curve for XGBoost. The large Area Under the Curve (Average Precision = 0.941) indicates a highly robust model. Unlike weaker models whose precision collapses as recall increases, XGBoost maintains strong predictive confidence across the entire threshold spectrum, effectively isolating the minority 'Disclosure' class without causing a flood of false alarms.
+
+
+Figure 3: ROC Curve for BERT. The curve bows tightly into the top-left quadrant, yielding an impressive AUC. This confirms BERT's unparalleled discriminative power; it successfully utilizes contextual embeddings to separate nuanced disclosure discussions from benign corporate chatter.
+4.2 Optimizing Decision Thresholds
+One of the key strengths of this project is the deliberate rejection of the default 0.5 decision threshold. While a 0.5 threshold may produce high overall accuracy, it often results in very poor recall for the critical minority class. In practical terms, this means many important disclosures would be missed.
+By mathematically identifying and applying an optimal threshold, we significantly improved the real-world effectiveness and operational reliability of the pipeline.
+
+Figure 4: Threshold vs. Metrics Curve (XGBoost). This graph illustrates how Precision (orange) and Recall (blue) change as the decision threshold is adjusted. It also highlights the point where the green F1-score curve reaches its highest value, which occurs at approximately a threshold of 0.35.
+This demonstrates that lowering the threshold from the default setting allows the model to capture a substantially higher number of true disclosures before precision begins to decline significantly.
+
+
+Figure 5: F1-Score Optimization (XGBoost). Isolating the F1-score across the entire probability spectrum clearly demonstrates the mathematical peak (marked in red). Implementing this precise threshold ensures the best possible harmonic mean of positive predictive value and sensitivity.
+4.3 Multiclass Categorization and Class-Weight Tuning
+The multiclass pipeline classifies flagged emails into five distinct functional categories: NONE, STRATEGIC, RELATIONAL, LEGAL, and FINANCIAL. This task is inherently more complex because the boundaries between categories often overlap. For example, an email discussing the financial impact of a legal settlement may contain both legal and financial characteristics, making classification more challenging.
+4.3.1 Resolving Minority Class Failure
+Initially, our models were affected by the natural statistical bias present in the training data. As a result, they tended to favor majority classes such as None and Relational, while frequently misclassifying or overlooking important minority categories like Strategic and Legal.
+We addressed this issue successfully by applying algorithmic class-weight tuning, which gave greater importance to underrepresented classes during training and improved the model’s ability to detect critical categories.
+
+Figure 6: Baseline Confusion Matrix (BiLSTM). Using standard probability selection, the model performs well on dominant classes but suffers from noticeable false negatives on the 'Strategic' and 'Legal' categories (evidenced by the weaker diagonal blocks).
+
+Figure 7: Class-Weight Tuned Confusion Matrix (BiLSTM). After applying class-weight penalties for misclassifying minority categories, the diagonal alignment becomes significantly stronger. The tuned model successfully redistributes its predictive confidence, drastically reducing false negatives for crucial categories. This visual comparison proves the success of our class-balancing methodology.
+4.3.2 Multiclass Discriminative Power
+
+Figure 8: One-vs-Rest ROC Curves for BERT. Each curve represents the model’s ability to distinguish one specific category from all remaining classes. The Legal and Financial categories show consistently strong and highly accurate performance, indicating that regulatory and monetary language forms distinct semantic patterns that BERT is able to recognize effectively.
+4.4 Model Training, Generalization, and Feature Interpretability
+A successful NLP pipeline must not only achieve high scores but also demonstrate that it is learning generalized linguistic patterns rather than simply memorizing the training dataset.
+
+Figure 9: Learning Curve (XGBoost). By plotting training accuracy versus cross-validation accuracy across an increasing number of samples, we diagnose model variance. The converging gap between the two lines confirms that XGBoost is generalizing effectively to unseen data, rather than overfitting.
+
+Figure 10: Deep Learning Training Trajectory (BiLSTM). The concurrent, steady decrease in both training and validation loss indicates healthy optimization. The point where validation loss stabilizes visually validates our use of Early Stopping to prevent premature overfitting on the Enron corpus.
+
+Figure 11: Feature Importance (XGBoost). This plot highlights the specific TF-IDF tokens and handcrafted linguistic features (such as modal verb frequency) that drive the model's decision-making process. This provides crucial transparency, proving the model is leveraging logical corporate terminology rather than anomalous noise.
+4.5 Benchmark Comparisons
+Our results establish a strong benchmark for the Enron corpus. Previous SVM-based topic classification studies typically reported F1-scores ranging from 0.70 to 0.82. By incorporating robust feature engineering, our SVM baseline achieved an F1-score of 0.8571, demonstrating the value of domain-specific features such as modal verb density.
+In addition, our fine-tuned BERT model performed at the higher end of modern transformer benchmarks for corporate email analysis.
+Ablation studies further confirmed that the strong performance was driven by the complete pipeline design, which combined stratified sampling, handcrafted features, and cost-sensitive optimization techniques.
+5. Conclusion
+This study focused on developing a system to detect and categorize disclosure events within the Enron Email Corpus. The proposed framework consisted of six components and evaluated six different models. Overall, the results show that disclosure events can be identified effectively when the data is properly prepared and common challenges such as class imbalance are carefully addressed.
+
+The most important finding of the study was the strong performance of BERT, which outperformed all other models. It achieved an F1-score of 0.8924 and a ROC-AUC of 0.8873. This superior performance can be attributed to BERT’s ability to understand contextual meaning and its effectiveness when fine-tuned for specific tasks. XGBoost also performed well, particularly in identifying a high number of disclosure events, which is valuable in investigative or monitoring scenarios. Logistic Regression provided a strong balance between predictive performance and interpretability.
+
+We also evaluated a BiLSTM model, although its performance was lower than expected. A likely reason is that it was not supported by pre-trained word embeddings, which are often essential for improving sequence-based neural models. In the multiclass categorization task, where disclosure events were assigned to different categories, overall performance was lower across all models. However, BERT remained the strongest performer, especially in identifying LEGAL disclosures.
+
+Another key finding was the importance of handcrafted features. Indicators such as phrase usage patterns and the frequency of legal terminology improved model performance when combined with textual features. We also observed that the classification threshold significantly influenced results. Selecting an appropriate threshold is essential, as it must balance the cost of missing a true disclosure against generating unnecessary false alarms.
+
+This study also has several limitations. The dataset was imbalanced, with a large concentration of emails from certain time periods, which may affect model generalization. In addition, the labels used in the dataset were not perfect, which could influence training quality. The BiLSTM model was also limited by the absence of pre-trained embeddings and attention mechanisms.
+Future work should explore integrating pre-trained word vectors and attention mechanisms into the BiLSTM model. It would also be valuable to test the system on emails from different time periods to evaluate long-term robustness. In addition, applying the framework to alternative datasets such as the Avocado Email Dataset could help assess its performance across different organizational contexts. Finally, comparing these results with systems based on modern large language models would provide useful insight into how task-specific training compares with more general-purpose AI approaches.

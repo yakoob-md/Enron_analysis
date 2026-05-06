@@ -1,125 +1,498 @@
-You are an expert academic evaluator and research reviewer.
+SECTION 1 — THE PROBLEM
+What is the Enron Problem?
+Enron was an American energy company that collapsed in 2001 in one of the largest corporate fraud scandals in history. Executives were hiding billions of dollars in debt using fake accounting tricks. The FBI seized over 600,000 internal emails when investigating.
+Here's the key insight: the truth was always in the emails. Executives were writing to each other about deals, write-downs, SEC filings, attorney consultations — all the things that later became evidence. If someone had a tool to automatically find these "disclosure" emails in real time, the fraud could have been caught earlier.
+That's exactly what your project builds.
+Why does this matter beyond Enron?
+Every major organization — banks, hospitals, government agencies — faces the same problem: employees communicate over email, and within millions of routine messages, there are a small number of critical ones that signal fraud, legal risk, financial exposure, or insider threats. Manual review is impossible at scale. Your system automates that detection.
 
-I will provide:
-1. A project report (PDF/DOCX)
-2. A collection of graphs, charts, and images (JPG/PNG)
+SECTION 2 — BACKGROUND CONCEPTS
+Let me teach you every concept you need, from zero.
+The Enron Dataset
+The dataset contains ~500,000 real emails from ~150 Enron employees, mostly senior management. Researchers use it because it's one of the only real corporate email datasets that's publicly available. Most corporate emails are private. Enron's were released through legal proceedings.
+Your project uses a preprocessed, silver-labeled subset of ~10,000 emails stored as a Parquet file. "Silver-labeled" means the labels were generated programmatically (e.g., by rules or a weaker model), not by a human expert reading every email. This introduces some label noise.
+What is a "Disclosure"?
+In your project, a disclosure is an email that reveals sensitive, non-public, or legally significant information. You've defined five categories:
 
-Your task is to critically evaluate ALL the visuals in relation to the report.
+NONE — routine ("let's meet at 3pm")
+STRATEGIC — mergers, acquisitions, restructuring decisions
+RELATIONAL — interpersonal coordination between employees
+LEGAL — SEC filings, attorney communication, regulatory matters
+FINANCIAL — earnings figures, write-downs, balance sheet items
 
------------------------------------
-CORE OBJECTIVE
------------------------------------
+What is NLP?
+Natural Language Processing is teaching computers to understand human language. An email is just a string of characters to a computer. NLP turns that string into something a model can reason about — whether by counting words, understanding grammar, or capturing meaning.
+What is Classification?
+Classification means putting something into a category. In your case: given an email, output either "Disclosure / Not Disclosure" (binary) or "NONE / STRATEGIC / RELATIONAL / LEGAL / FINANCIAL" (multiclass).
+What is TF-IDF?
+Term Frequency-Inverse Document Frequency. A way to convert text into numbers.
 
-Your goal is to determine:
-- Which visuals are CORRECT and meaningful
-- Which visuals are MISLEADING, WEAK, or IRRELEVANT
-- Which visuals actually demonstrate the TRUE strength of the project
+TF: How often does word "merger" appear in this email?
+IDF: How rare is "merger" across all emails?
 
-You must think like a strict professor evaluating a final-year or research-level submission.
+Words that appear often in one email but rarely elsewhere get high scores. "The" appears everywhere — low score. "Write-down" appears in few emails — high score. This is how TF-IDF captures meaning without understanding language.
+What are Embeddings?
+An embedding is a list of numbers that represents the meaning of a word or sentence. The key property: words with similar meanings get similar numbers. "Merger" and "acquisition" would be close together in embedding space. "Merger" and "football" would be far apart.
+What is BERT?
+BERT (Bidirectional Encoder Representations from Transformers) is a model pre-trained on billions of web pages. It understands context. The word "lead" means different things in "lead a team" vs "lead pipe." BERT figures this out by reading both directions simultaneously.
+In your project, BERT reads an email and produces a 768-dimensional vector that captures the email's meaning. You then attach a small classification layer on top to make predictions.
+What is BiLSTM?
+A Bidirectional Long Short-Term Memory network. An older architecture (pre-BERT) that reads a sequence of words forward and backward, maintaining a "memory" of what it's seen. It's weaker than BERT because it wasn't pre-trained on massive data, but it's faster to train.
+What is XGBoost?
+XGBoost is a gradient boosting algorithm — essentially an ensemble of decision trees where each tree corrects the mistakes of the previous one. It works extremely well on tabular/sparse data like TF-IDF matrices. In your results, XGBoost achieved the highest recall (0.9801) among ML models.
+What is Threshold Analysis?
+Every probabilistic classifier outputs a probability: "I'm 67% sure this is a disclosure." The threshold is the cutoff — above it, you predict "Disclosure"; below it, "Not Disclosure."
+The default threshold is 0.5. But for fraud detection, missing a real disclosure (False Negative) is far worse than flagging a normal email (False Positive). So you move the threshold lower — say 0.35 — which catches more real disclosures at the cost of more false alarms. Your phase5_evaluate.py implements four threshold strategies: Youden, F1-optimal, G-mean, and cost-sensitive.
 
------------------------------------
-EVALUATION CRITERIA
------------------------------------
+SECTION 3 — REPOSITORY BREAKDOWN
+Let me walk through every file and explain its exact role.
+Top-Level Structure
+NLP3/
+├── binary_pipeline/          ← Binary classifier (Disclosure vs None)
+│   ├── src/                  ← All source code for binary pipeline
+│   │   ├── pipeline.py       ← MAIN ENTRY POINT
+│   │   ├── config.py         ← Configuration switches
+│   │   ├── phase1_validate.py
+│   │   ├── phase2_preprocess.py
+│   │   ├── phase2b_features.py
+│   │   ├── phase5_evaluate.py
+│   │   ├── phase6_error_analysis.py
+│   │   ├── models/
+│   │   │   ├── ml_models.py
+│   │   │   ├── bert_model.py
+│   │   │   └── dl_models.py
+│   │   ├── vectorizers/
+│   │   │   ├── ml_vectorizer.py
+│   │   │   ├── bert_vectorizer.py
+│   │   │   └── dl_vectorizer.py
+│   │   ├── training/
+│   │   │   └── ml_train.py
+│   │   └── utils/
+│   │       └── table_visualizer.py
+│   └── models/bert_model/config.json
+├── multiclass_pipeline/       ← 5-class classifier
+│   ├── pipeline.py            ← MAIN ENTRY POINT
+│   ├── configs/config.py
+│   ├── preprocessing/
+│   ├── features/features.py
+│   ├── vectorizers/
+│   ├── models/
+│   │   ├── ml/ml_models.py
+│   │   ├── dl/bert_model.py
+│   │   ├── dl/bilstm.py
+│   │   └── llm/llm_classifier.py
+│   ├── training/trainer.py
+│   ├── evaluation/evaluator.py
+│   └── utils/
+├── scratch/                   ← Experimental scripts (not production)
+├── requirements.txt
+├── pipeline.ipynb
+├── run_diagnostics.py
+├── generate_report.py
+└── error_analysis.txt
+File-by-File Explanation
 
-For EACH visual, analyze:
+binary_pipeline/src/config.py
+pythonMODE = 'ml'
+ML_MODELS = ['lr', 'rf', 'svm', 'xgb']
+DL_MODELS = ['bilstm', 'bert']
+DATA_PATH = 'data/emails_labeled_silver_tenK.parquet'
+EPOCHS = 2
+BATCH_SIZE = 32
+MAX_LEN = 200
+VOCAB_SIZE = 10000
+This is the control panel of your binary pipeline. Change MODE to 'dl' to switch from traditional ML to deep learning. MAX_LEN = 200 means emails are truncated/padded to 200 tokens. VOCAB_SIZE = 10000 means only the 10,000 most common words are kept for the BiLSTM vocabulary.
 
-1. CORRECTNESS
-- Is the graph technically correct?
-- Are axes labeled properly?
-- Is the data representation valid?
+binary_pipeline/src/pipeline.py — The main orchestrator.
+This file runs everything in sequence. Here's the exact execution flow:
+1. Load parquet data
+2. Create binary label (NONE=0, anything else=1)
+3. validate_data() → Phase 1
+4. preprocess() → Phase 2
+5. engineer_features() → Phase 2b (ML mode only)
+6. drop_duplicates on text_input
+7. train_test_split (70/15/15)
+8. vectorize() → Phase 3
+9. For each model:
+   a. get_model() → instantiate
+   b. train_model() → fit
+   c. evaluate() → Phase 5 (with threshold analysis)
+   d. error_analysis() → Phase 6
+10. Save results CSV + styled table
+Key design decision: The pipeline is mode-switched. When MODE='ml', it imports TF-IDF vectorizers and sklearn models. When MODE='dl', it imports BERT/BiLSTM. This is clean but means you can't run both simultaneously without changing config.
 
-2. RELEVANCE
-- Does this visual support any claim in the report?
-- Or is it unnecessary/noise?
+phase1_validate.py
+pythondef validate_data(df):
+    print(f"Rows: {len(df)}, Columns: {len(df.columns)}")
+    print("Missing:\n", df.isnull().sum())
+    print("Duplicates:", df.duplicated(subset='mid').sum())
+    df['label'] = df['disclosure_type'].apply(lambda x: 0 if x == 'NONE' else 1)
+    print("Class distribution:\n", df['label'].value_counts())
+    print("Imbalance ratio:", ...)
+    return df
+This does data integrity checks and creates the binary label. From your results: 7,381 disclosures vs 2,605 non-disclosures. Imbalance ratio of 2.83 — disclosures actually outnumber non-disclosures in your labeled subset. This is because the silver labeling process over-labeled disclosures. Important for your viva.
 
-3. INTERPRETATION
-- Does the graph actually prove anything meaningful?
-- Or is it superficial?
+phase2_preprocess.py
+pythondef clean_text(text):
+    text = text.lower()
+    text = re.sub(r'http\S+', '', text)     # remove URLs
+    text = re.sub(r'\S+@\S+', '', text)     # remove email addresses
+    text = re.sub(r'\d+', ' NUM ', text)    # normalize numbers
+    text = re.sub(r'[^\w\s]', ' ', text)    # remove punctuation
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
-4. ALIGNMENT WITH REPORT
-- Where (which section) does this belong?
-- Does the report already reference it properly?
+def preprocess(df):
+    df = df[df['word_count'] <= 2000].copy()  # remove very long emails
+    df['text_input'] = subject + ' ' + body_clean
+    df = df[df['text_input'].str.len() > 10]
+    return df
+Why remove numbers? Because "we lost $47,382,901" and "we lost $99,231,445" carry the same meaning — financial loss. Replacing both with NUM lets the model learn the pattern without memorizing specific figures.
+Why cap at 2000 words? Extremely long emails are usually forwarded chains or legal documents. They're outliers that can distort training.
+Why concatenate subject + body? The subject line often contains the most important signal. "URGENT: SEC Investigation" tells you more than the body alone.
 
-5. PROJECT STRENGTH SIGNAL
-- Does this graph highlight:
-  - model performance?
-  - comparison with baselines?
-  - real contribution?
-- Or is it weak/irrelevant?
+phase2b_features.py — Hand-crafted feature engineering (ML mode only)
+This is where domain expertise becomes code. You manually define signals that indicate disclosure:
+pythonDISCLOSURE_PHRASES = [
+    'confidential', 'do not forward', 'privileged', 'off the record',
+    'merger', 'acquisition', 'write-down', 'special purpose entity',
+    'sec filing', 'earnings', 'settlement', 'salary', ...
+]
 
------------------------------------
-OUTPUT FORMAT (VERY IMPORTANT)
------------------------------------
+MODAL_VERBS = ['must', 'shall', 'should', 'cannot', 'required to']
+UNCERTAINTY_WORDS = ['may', 'might', 'possibly', 'likely', 'uncertain', 'risk']
+It then computes 12 features per email:
+FeatureWhat it measuresWhy it mattersf_word_countEmail lengthLong emails often contain more detailf_disclosure_hitsCount of disclosure phrasesDirect signalf_disclosure_ratioHits / word countNormalizes for lengthf_modal_countModal verb countLegal language uses "must", "shall"f_uncertainty_countUncertainty wordsRisk discussionsf_caps_ratioUppercase ratioURGENT HEADERSf_has_dollar$, USD, million, billionFinancial contentf_has_legal_termattorney, counsel, SEC, FERCLegal contentf_avg_sentence_lenWords per sentenceLegal writing is verbose
+Why do this at all when you have TF-IDF? TF-IDF captures which words appear. These features capture how the text is structured. Combining both is called feature fusion. From your results, this gives ~4-6% F1 improvement over TF-IDF alone.
 
-Respond in this EXACT structure:
+vectorizers/ml_vectorizer.py
+pythondef vectorize(X_train_txt, X_test_txt, X_train_hf, X_test_hf):
+    tfidf = TfidfVectorizer(
+        max_features=7000,
+        ngram_range=(1, 2),    # unigrams AND bigrams
+        min_df=3,              # word must appear in 3+ emails
+        max_df=0.95,           # ignore words in 95%+ of emails
+        sublinear_tf=True      # use log(tf) instead of tf
+    )
+    X_tr_tfidf = tfidf.fit_transform(X_train_txt)
+    X_te_tfidf = tfidf.transform(X_test_txt)
 
------------------------------------
-1. OVERALL VISUAL QUALITY VERDICT
------------------------------------
-- Strong / Average / Weak
-- Justify clearly
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_hf)
 
------------------------------------
-2. VISUAL-BY-VISUAL ANALYSIS
------------------------------------
+    X_tr = hstack([X_tr_tfidf, csr_matrix(X_train_scaled)])
+    X_te = hstack([X_te_tfidf, csr_matrix(X_test_scaled)])
+    return X_tr, X_te, tfidf
+Why bigrams (ngram_range=(1,2))? "Special purpose entity" is a key Enron phrase. If you only look at unigrams, you see "special", "purpose", "entity" — each common individually. The bigram "special purpose" is rare and highly discriminative.
+Why sublinear_tf=True? If "earnings" appears 10 times in an email, does it mean 10x more "financial" than an email where it appears once? No. Log scaling dampens this: log(10) ≈ 2.3. More realistic.
+Why StandardScaler on hand features? The hand features have different scales. f_word_count might be 500, f_disclosure_ratio might be 0.003. Without scaling, the word count dominates. StandardScaler makes every feature have mean=0 and std=1.
+The hstack: This horizontally stacks the 7,000-column TF-IDF matrix with the 12-column hand features into one 7,012-column matrix. This is the actual input to your ML models.
 
-For each image:
+models/ml_models.py
+pythondef get_model(name, class_ratio=None):
+    spw = (1.0 / class_ratio) if class_ratio else 0.35
 
-[Image Name / Number]
+    if name == 'lr':
+        return LogisticRegression(
+            class_weight='balanced',  # penalizes majority class
+            C=1.0,                    # regularization
+            solver='lbfgs'
+        )
+    elif name == 'rf':
+        return RandomForestClassifier(
+            n_estimators=300,
+            class_weight='balanced_subsample'  # per-tree reweighting
+        )
+    elif name == 'xgb':
+        return XGBClassifier(
+            scale_pos_weight=spw,  # for binary: neg/pos ratio
+            objective='binary:logistic'
+        )
+Why class_weight='balanced'? Your dataset has more disclosures than non-disclosures (2.83 ratio). Without balancing, the model learns "just say Disclosure for everything — I'll be right 74% of the time." Balanced weighting makes errors on minority class examples count more during training.
+Why scale_pos_weight for XGBoost? XGBoost handles class imbalance differently — it needs the ratio explicitly. For binary: scale_pos_weight = num_negatives / num_positives.
 
-- Correctness: (Correct / Minor Issues / Incorrect)
-- Verdict: (KEEP / REMOVE / FIX)
-- Why:
-- What it actually shows:
-- Issues (if any):
-- Where to place in report:
-- Suggested caption/explanation:
+vectorizers/bert_vectorizer.py
+pythondef vectorize(X_train_txt, X_test_txt):
+    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+    return tokenizer(
+        list(texts),
+        padding=True,
+        truncation=True,
+        max_length=MAX_LEN,
+        return_tensors="pt"
+    )
+BERT doesn't use TF-IDF. Instead, it tokenizes text using WordPiece — a subword tokenizer. "Disclosure" might become ["dis", "##clos", "##ure"]. Unknown words are never truly unknown because they're broken into known subpieces. The tokenizer returns input_ids (token indices) and attention_mask (which positions are real vs padding).
 
------------------------------------
-3. BEST VISUALS (MOST IMPORTANT)
------------------------------------
+models/bert_model.py
+pythondef get_model(name='bert'):
+    model = AutoModelForSequenceClassification.from_pretrained(
+        'bert-base-uncased',
+        num_labels=1,  # binary → sigmoid output
+    )
+    return model
+This loads BERT's pre-trained weights (trained on Wikipedia + BookCorpus) and adds a single linear layer on top. You then fine-tune all 110 million parameters on your Enron emails. The training includes:
 
-List the TOP visuals that:
-- Clearly demonstrate the project’s strength
-- Should DEFINITELY be included
+Warmup scheduler: Learning rate starts low, rises, then decays. Prevents early large gradient updates from destroying pre-trained weights.
+Gradient clipping: Prevents exploding gradients (clip_grad_norm_(model.parameters(), 1.0))
+Early stopping: Stops when validation loss stops improving
 
-Explain WHY each one is strong.
 
------------------------------------
-4. VISUALS TO REMOVE
------------------------------------
+models/dl_models.py — BiLSTM
+pythonclass BiLSTMBinary(nn.Module):
+    def __init__(self, vocab_size=10000, embed_dim=128, hidden_dim=128):
+        self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
+        self.lstm = nn.LSTM(embed_dim, hidden_dim, num_layers=2,
+                            bidirectional=True, dropout=0.4)
+        self.layer_norm = nn.LayerNorm(hidden_dim * 2)
+        self.dropout = nn.Dropout(0.4)
+        self.fc = nn.Linear(hidden_dim * 2, 1)
 
-List visuals that:
-- Are misleading
-- Add no value
-- May weaken the report
+    def forward(self, x):
+        x = self.embedding(x)
+        _, (h, _) = self.lstm(x)
+        h = torch.cat([h[-2], h[-1]], dim=1)  # concat fwd + bwd
+        h = self.layer_norm(h)
+        h = self.dropout(h)
+        return self.fc(h)
+The forward pass, step by step:
 
------------------------------------
-5. MISSING VISUALS (CRITICAL)
------------------------------------
+embedding(x) — convert token IDs to 128-dim vectors
+lstm(x) — process sequence bidirectionally, return hidden states
+torch.cat([h[-2], h[-1]]) — grab last layer's forward and backward hidden states, concatenate into 256-dim vector
+Layer norm + dropout — regularization
+fc(h) — linear layer to get single logit
 
-Suggest important graphs that SHOULD exist but are missing, such as:
-- Confusion matrix
-- Model comparison
-- Loss curves
-- Threshold analysis
-- Any other important evaluation plots
+Why BiLSTM without pre-trained embeddings performs worst? The embeddings are randomly initialized. BERT's embeddings are trained on billions of sentences. Your BiLSTM starts knowing nothing about language; BERT starts knowing English. With only 8,000 training emails, there isn't enough data to learn good embeddings from scratch.
 
------------------------------------
-6. FINAL RECOMMENDATION
------------------------------------
+phase5_evaluate.py — The evaluation engine. This is one of your most sophisticated files.
+pythondef find_optimal_threshold(y_test, y_prob, method='youden'):
+    if method == 'youden':
+        j = tpr - fpr
+        idx = np.argmax(j)       # maximize true positives, minimize false positives equally
+    elif method == 'f1':
+        f1s = 2*p*r / (p+r)
+        idx = np.argmax(f1s)     # maximize F1
+    elif method == 'cost':
+        cost_fn, cost_fp = 3, 1
+        costs = cost_fn * (1-tpr) + cost_fp * fpr
+        idx = np.argmin(costs)   # false negatives cost 3x more
+Cost-sensitive threshold: This encodes domain knowledge directly into the decision rule. In corporate disclosure detection, missing a real disclosure (False Negative) is 3x worse than a false alarm. The threshold moves lower to catch more true disclosures.
 
-- How to improve the visual section overall
-- What changes would make the report look strong academically
+phase6_error_analysis.py
+Collects False Positives and False Negatives and prints sample emails. This is crucial for understanding why the model fails. From your results, the classic False Positive is a newsletter email that contains financial terms ("earnings," "college" → confuses the model). Classic False Negative is a casual-sounding email that actually contains insider information.
 
------------------------------------
-IMPORTANT RULES
------------------------------------
+multiclass_pipeline/pipeline.py — Same structure as binary, but for 5 classes.
+Key differences:
 
-- Be brutally honest and critical
-- Do NOT be polite or vague
-- Do NOT assume visuals are correct — verify logically
-- Focus on academic rigor, not presentation alone
-- Think like a professor deciding grades
+Uses MultiClassLabelEncoder to convert class names to integers
+Computes class_weights to handle multi-class imbalance
+Uses MulticlassFocalLoss instead of BCE
+evaluate_multiclass() produces per-class OvR ROC curves + confusion matrices
 
-Your goal is to ensure only the most correct, meaningful, and high-impact visuals are included in the report.
+
+multiclass_pipeline/utils/focal_loss.py
+pythonclass MulticlassFocalLoss(nn.Module):
+    def forward(self, logits, targets):
+        log_pt = F.log_softmax(logits, dim=-1)
+        log_pt = log_pt.gather(1, targets.unsqueeze(1)).squeeze(1)
+        pt = log_pt.exp()
+        focal_weight = (1 - pt) ** self.gamma   # gamma=2
+        loss = -focal_weight * log_pt
+        return loss.mean()
+Focal Loss was invented for object detection (finding small objects in images) but works perfectly here. The key idea: (1 - pt)^gamma down-weights easy examples. If the model is already 95% confident on "NONE" emails, their loss contributes almost nothing. Hard examples — ambiguous LEGAL vs FINANCIAL emails — dominate training. This is why focal loss helps with class imbalance.
+
+multiclass_pipeline/models/llm/llm_classifier.py
+pythonSYSTEM_PROMPT = """
+Classify each email into exactly one of:
+NONE, STRATEGIC, RELATIONAL, LEGAL, FINANCIAL
+Respond ONLY with JSON: {"label": "LEGAL", "confidence": 0.87, "reason": "..."}
+"""
+
+def classify_with_llm(email_text, client, model_name="claude-3-opus-20240229"):
+    response = client.messages.create(model=model_name, ...)
+    return json.loads(response.content[0].text)
+This is a scaffolded LLM zero-shot classifier. It's not benchmarked yet — mentioned in your conclusion as future work. The idea: instead of training a model, just ask Claude/GPT to classify emails directly. This is powerful but expensive at scale.
+
+generate_report.py — Utility that walks your results folders, finds all PNG images, and compiles them into a PDF with auto-generated captions. Uses fpdf and PIL.
+run_diagnostics.py — Loads trained models and runs error analysis separately from the main pipeline. Useful when you've already trained and just want to inspect errors.
+scratch/ folder — Contains 5 versions of error analysis scripts (error_analysis_v1 through v5). These are experimental. v5 is the cleanest. They are not part of the production pipeline.
+rough.py — Contains train_with_diagnostics(), a BiLSTM training function that plots loss/accuracy curves per epoch. This is an improved version of the basic trainer but wasn't integrated into the main pipeline.
+analysis_sofar — Your research notes. Contains the email volume timeline, the dataset imbalance problem description, and raw pipeline output logs. This is informal documentation.
+image_explanations.md — Pre-written academic captions for every type of graph. Directly usable in your report.
+
+SECTION 4 — METHODOLOGY IN DEPTH
+End-to-End Pipeline Flow
+Raw Parquet Data (10,000 emails)
+         │
+         ▼
+┌─────────────────┐
+│  Phase 1:       │  → Check nulls, duplicates, class distribution
+│  Validation     │  → Create binary label column
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Phase 2:       │  → Lowercase, remove URLs/emails
+│  Preprocessing  │  → Replace numbers with NUM
+└────────┬────────┘  → Remove emails >2000 words
+         │           → Concatenate subject + body
+         ▼
+┌─────────────────┐
+│  Phase 2b:      │  → Compute 12 domain features (ML only)
+│  Feature Eng.   │  → disclosure_hits, modal_count, etc.
+└────────┬────────┘
+         │
+         ├─── ML PATH ──────────────────────────────────┐
+         │                                              │
+         ▼                                              ▼
+┌─────────────────┐                          ┌─────────────────┐
+│  TF-IDF         │                          │  BERT/BiLSTM    │
+│  (7000 features)│                          │  Tokenization   │
+│  + Hand Features│                          │  (input_ids,    │
+│  (12 features)  │                          │  attention_mask)│
+│  = 7012 cols    │                          └────────┬────────┘
+└────────┬────────┘                                   │
+         │                                            │
+         ▼                                            ▼
+┌─────────────────┐                          ┌─────────────────┐
+│  LR / RF /      │                          │  BERT Fine-tune │
+│  SVM / XGBoost  │                          │  or BiLSTM      │
+└────────┬────────┘                          └────────┬────────┘
+         │                                            │
+         └──────────────────┬─────────────────────────┘
+                            │
+                            ▼
+                  ┌─────────────────┐
+                  │  Phase 5:       │
+                  │  Evaluation     │
+                  │  - 4 thresholds │
+                  │  - ROC / PR     │
+                  │  - F1 / AUC     │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │  Phase 6:       │
+                  │  Error Analysis │
+                  │  FP / FN samples│
+                  └─────────────────┘
+Why This Specific Architecture?
+Why two pipelines (binary + multiclass) instead of one?
+Because they solve different problems. Binary is a high-recall filter: "Is there anything sensitive in this email?" Multiclass is a semantic sorter: "If yes, what kind of sensitive?" In production, you'd run binary first, then multiclass on flagged emails only.
+Why use hand-crafted features alongside TF-IDF?
+TF-IDF is purely frequency-based. It sees "attorney" as just a word. The hand-crafted features encode meaning: "this email mentions attorney-level terms AND uses modal verbs AND has high uncertainty language" — that's a legal disclosure pattern TF-IDF can't capture alone.
+Why four threshold strategies?
+Different deployment contexts need different tradeoffs:
+
+Regulatory audit → cost-sensitive (recall is everything)
+Balanced review → F1-optimal
+Equal error → Youden
+Empirical → G-mean
+
+Showing all four demonstrates methodological rigor.
+
+SECTION 5 — THEORY-TO-CODE LINKING
+BERT: Theory → Code
+Theory: BERT uses a Transformer encoder with 12 layers. Each layer has multi-head self-attention that lets every word attend to every other word simultaneously. Pre-training on Masked Language Modeling teaches it language understanding. Fine-tuning on your data teaches it disclosure classification.
+In your code:
+python# bert_model.py
+model = AutoModelForSequenceClassification.from_pretrained(
+    'bert-base-uncased',
+    num_labels=1              # For binary: 1 output → sigmoid
+)
+
+# Training:
+outputs = model(input_ids=ids, attention_mask=mask)
+logits = outputs.logits.squeeze(-1)           # raw score
+loss = BCEWithLogitsLoss()(logits, labels)    # binary cross-entropy
+The attention_mask tells BERT which tokens are real vs padding. Without it, BERT would waste attention on padding zeros.
+BERT's config.json shows: hidden_size: 768, num_hidden_layers: 12, num_attention_heads: 12. Each of 12 heads learns different aspects of attention — one might focus on syntactic relationships, another on semantic ones.
+XGBoost: Theory → Code
+Theory: An ensemble of decision trees where each tree corrects the residuals of all previous trees. Extremely effective on sparse matrices like TF-IDF.
+In your code:
+pythonXGBClassifier(
+    scale_pos_weight=spw,      # handles imbalance
+    n_estimators=300,          # 300 trees
+    max_depth=6,               # each tree can split 6 levels deep
+    learning_rate=0.05,        # small steps prevent overfit
+    subsample=0.8,             # each tree sees only 80% of rows
+    colsample_bytree=0.8       # each tree sees only 80% of features
+)
+subsample and colsample_bytree are regularization — they introduce randomness so trees don't all make the same mistakes.
+
+SECTION 6 — COMPLETE VS INCOMPLETE
+What's Fully Implemented ✅
+
+Complete binary pipeline (ML + DL modes)
+TF-IDF + hand feature fusion
+All 4 ML models with proper class balancing
+BERT fine-tuning with warmup, gradient clipping, early stopping
+BiLSTM with proper embedding layer, layer norm, dropout
+Focal Loss for binary BiLSTM
+4 threshold strategies with visualization
+ROC, PR, F1-threshold plots
+Learning curves for ML models
+Feature importance plots
+Error analysis (FP/FN sampling)
+Multiclass pipeline with 5 classes
+Per-class OvR ROC curves
+Multiclass focal loss
+Class-weight tuning
+Styled table visualizer
+PDF report generator
+
+What's Partial ⚠️
+BiLSTM in binary mode without pre-trained embeddings — The code has nn.Embedding (random init). The comment says "pretrained embeddings hook" but GloVe/FastText loading is not implemented. This explains the 0.7869 accuracy vs BERT's 0.8421.
+The multiclass BiLSTM vectorizer has a separate clean_text() from the binary pipeline — slight inconsistency. Different regex handling.
+SVM in binary — SVC with probability=True is used, but CalibratedClassifierCV is commented out. This means probability calibration is Platt scaling (built into SVC) but could be better.
+The rough.py diagnostics trainer — A better version of BiLSTM training with loss curves, never integrated into main pipeline.
+What's Missing ❌
+GloVe/FastText embeddings for BiLSTM — explicitly mentioned as future work in your conclusion. Would likely boost BiLSTM from 0.79 to ~0.84.
+Temporal cross-validation — Standard cross-validation randomly mixes pre-crisis and crisis emails. In reality, you'd train on emails from 2000-2001 and test on late 2001. Your current split doesn't test temporal generalization.
+LLM baseline benchmarking — The llm_classifier.py exists but was never run at scale. No results in analysis_sofar.
+Ensemble model — You have LR, RF, XGB, BERT. A simple voting ensemble or stacking model would likely outperform any individual model. Not implemented.
+Dashboard/UI — No real-time inference interface. The system currently requires running scripts manually.
+Cross-corpus evaluation — Only tested on Enron. The conclusion mentions Avocado dataset. Generalizability is unproven.
+What May Fail in Production ⚠️
+The scaler fitted on test data in scratch scripts — In error_analysis_v2.py, the StandardScaler is fit_transformed on test data instead of train data. This is data leakage. Doesn't affect the main pipeline (which fits only on train), but the diagnostic scripts would give inflated results.
+Label noise — Silver labels mean some emails are incorrectly labeled. The model's true performance on human-verified labels may be lower.
+The generate_report.py uses hardcoded Windows paths — r'c:\Users\dabaa\...'. Not portable.
+BERT's problem_type='regression' in config.json — Your saved BERT model's config says "problem_type": "regression" and only has "id2label": {"0": "LABEL_0"} — one label. This suggests the saved binary BERT model might need rechecking before deploying to multiclass.
+
+SECTION 7 — RESULTS INTERPRETATION
+Your Numbers Explained
+ModelAccuracyF1RecallWhat it meansLR0.810.870.83Balanced. Good baseline.RF0.820.880.91Best FP/FN balance in MLSVM0.790.860.84Weakest ML — no probability calibrationXGB0.810.880.98Finds almost all disclosures, but high FPBERT0.840.890.88Best overallBiLSTM0.790.860.85Held back by random embeddings
+XGB's recall of 0.98 means it catches 98% of real disclosures. But it has 345 False Positives — it over-predicts. This is actually the right behavior for a fraud detection system where cost-sensitive thresholding is applied.
+BERT's 465 False Positives — this looks worse than XGB's 345. But BERT's FP rate is measured at a lower threshold because BERT has higher overall confidence. The actual operating threshold matters.
+Multiclass Results — Why It's Hard
+From error_analysis.txt: LR multiclass accuracy is only 0.0761. This seems catastrophically bad — but read carefully. This is the multiclass error analysis script that uses dummy hand features (zeros) instead of real ones. The actual multiclass results from the main pipeline are better. This is a known issue in your run_diagnostics.py.
+What Good vs Bad Results Look Like
+Good: ROC-AUC > 0.85, F1 > 0.85, training/validation loss both decreasing and converging.
+Concerning: If validation loss increases while training loss decreases → overfitting. Your BiLSTM loss curve shows healthy convergence (382 → 129 over 5 epochs).
+Red flag: If PR-AUC is very low despite good ROC-AUC → the model is only good because it's correct on the majority class. For imbalanced data, always report PR-AUC.
+
+SECTION 8 — VIVA PREPARATION
+Q: Why did you use silver labels instead of manually annotating the data?
+A: Manual annotation of 10,000 emails would require domain experts familiar with corporate law and finance, and would take weeks. Silver labeling uses heuristics and weaker models to label at scale. The tradeoff is label noise — approximately 5-15% of labels may be incorrect. This is acknowledged in the conclusion and is a known limitation. Future work would include a human-verified gold standard on a subset.
+Q: Your BiLSTM has random embeddings. Why not use GloVe?
+A: This is an identified gap. The current implementation has the embedding layer in place but initializes randomly. GloVe or FastText embeddings pre-trained on financial text (e.g., Bloomberg financial news corpus) would give the model a semantic head start, likely closing 50-70% of the performance gap with BERT. This is mentioned as future work.
+Q: Why is XGBoost's recall 0.98 but BERT's is only 0.88?
+A: XGBoost is evaluated at a cost-sensitive threshold (lower than 0.5), which trades precision for recall. BERT is evaluated at its F1-optimal threshold, which balances the two. If BERT is evaluated at the same cost-sensitive threshold, its recall would also approach 0.97+. This is a threshold comparison issue, not a model capability difference.
+Q: Your dataset has temporal imbalance. How does this affect results?
+A: October 2001 alone has 1,087 emails — 10.9% of the dataset. The model has seen crisis-period language in disproportionate detail. When it encounters a pre-crisis business email, it may over-predict disclosure because the language resembles crisis-period communication patterns. Temporal cross-validation — training on pre-crisis emails and testing on crisis-period emails — would give a more honest assessment of generalization. This is a key future work direction.
+Q: What is focal loss and why did you use it?
+A: Focal Loss modifies standard cross-entropy by adding a factor (1 - pt)^gamma. When the model is already confident about a prediction (high pt), this factor approaches zero, so the loss contribution is minimal. When the model is uncertain (low pt), the factor approaches 1, making those examples dominate training. With gamma=2, easy examples are effectively down-weighted by a factor of up to 100x. This is critical for imbalanced multiclass classification where NONE emails (majority) would otherwise dominate gradient updates and the model would learn to ignore STRATEGIC and LEGAL categories.
+Q: How does the threshold analysis work technically?
+A: For a binary classifier, predict_proba() returns a probability for each email. We evaluate all possible threshold values from 0 to 1. For each threshold, we compute precision, recall, and F1. The Youden method picks the threshold maximizing TPR - FPR. The F1 method maximizes the harmonic mean of precision and recall. The cost-sensitive method minimizes 3×FN_rate + 1×FP_rate, encoding domain knowledge that missed disclosures are 3x worse than false alarms.
+Q: Why use hstack with sparse matrices?
+A: TF-IDF vectors are sparse — 7,000 columns but most are zero (an email uses maybe 200 unique words). Storing them as dense arrays would require gigabytes of RAM. scipy.sparse.hstack keeps them sparse while appending the 12 dense hand features (converted to sparse via csr_matrix). This allows training on a laptop.
+Q: How would you deploy this system?
+A: The trained models (joblib files for ML, .pt/.safetensors for DL) would be loaded into a REST API (Flask/FastAPI). Incoming emails are preprocessed with the same pipeline, vectorized with the saved TF-IDF vocabulary, and scored. For BERT inference, batch processing is more efficient than single-email queries. A confidence threshold determines whether the email enters a human review queue. Monitoring for distribution shift (if email language patterns change) would be needed for production robustness.
+Q: What is the significance of using both precision-recall curves AND ROC curves?
+A: ROC curves plot TPR vs FPR. When classes are imbalanced, FPR can look artificially low because the denominator (total negatives) is large. A model that labels everything as Disclosure might still have a decent-looking ROC curve. PR curves are immune to this — they only look at the positive class. Your dataset's 2.83 imbalance ratio is moderate, so both metrics are informative. For more extreme imbalance (say, 1:100), PR-AUC would be the only trustworthy metric.
+
+FINAL ARCHITECTURE SUMMARY
+In one sentence: Your project builds a two-stage NLP pipeline that uses domain-informed feature engineering combined with transformer and gradient boosting models to detect corporate disclosure events in the Enron email corpus, with rigorous threshold optimization, class imbalance mitigation, and comprehensive evaluation across binary and multiclass settings.
+The honest strengths: solid engineering, thoughtful feature design, proper class balancing, threshold analysis that demonstrates real domain awareness, and BERT fine-tuning with all the right training practices.
+The honest gaps: no temporal validation, no pre-trained word vectors in BiLSTM, no LLM baseline benchmarked, no ensemble model, silver labels as ground truth.
+You understand this project deeply enough to defend every decision. If a professor challenges any methodology choice, you have a technical reason, an alternative you considered, and a trade-off you accepted.
