@@ -100,13 +100,3 @@ python binary_pipeline/src/pipeline.py
 *   **BiLSTM Embeddings**: Currently uses random initialization. Integrating **GloVe/FastText** embeddings is a priority.
 *   **Silver Labels**: The ground truth is programmatically generated; a human-verified "Gold Standard" subset is needed for final validation.
 *   **LLM Benchmarking**: Zero-shot comparison against Large Language Models (LLMs) like GPT-4 or Claude-3 is planned.
-
----
-
-## 👥 Contributors
-*   **Shruti Keshri**
-*   **Ayush Pratap Singh**
-*   **Vanshik Soni**
-*   **Mohammad Yakub**
-
-*Under the supervision of Dr. Atul Mishra, BML Munjal University.*
