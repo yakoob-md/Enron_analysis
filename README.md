@@ -5,7 +5,7 @@
 
 An advanced NLP pipeline designed to detect and categorize sensitive corporate disclosures within the Enron Email Corpus. This project implements a two-stage classification system using both traditional Machine Learning and State-of-the-Art Deep Learning architectures.
 
-## 🚀 Overview  --vgvg
+## 🚀 Overview  --vg
 
 During the Enron scandal, critical evidence was hidden within millions of internal emails. This project builds an automated system to identify **disclosures**—emails revealing sensitive, non-public, or legally significant information—in real-time.
 
