@@ -8,7 +8,7 @@ An advanced NLP pipeline designed to detect and categorize sensitive corporate d
 ## 🚀 Overview
 
 During the Enron scandal, critical evidence was hidden within millions of internal emails. This project builds an automated system to identify **disclosures**—emails revealing sensitive, non-public, or legally significant information—in real-time.
- fg
+ f
 ### Two-Stage Pipeline
 1.  **Binary Classification**: A high-recall filter that separates "Disclosure" emails from routine "Non-Disclosure" traffic.
 2.  **Multiclass Classification**: Categorizes flagged emails into five functional domains:
