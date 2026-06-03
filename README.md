@@ -31,7 +31,7 @@ Combines statistical lexical patterns with domain expertise:
     *   `uncertainty_count`: Risk-related language (*likely, possibly, risk*).
     *   `caps_ratio` & `has_dollar`: Formatting and financial content indicators.
 
-### 2. Model Zoo gy
+### 2. Model Zoo 
 *   **Classical ML**: Logistic Regression, Random Forest, SVM, and **XGBoost** (tuned for high recall).
 *   **Deep Learning**: 
     *   **BERT (base-uncased)**: Fine-tuned with a custom classification head and warm-up scheduling.
