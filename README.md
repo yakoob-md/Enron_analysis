@@ -29,7 +29,7 @@ Combines statistical lexical patterns with domain expertise:
     *   `disclosure_hits`: Frequency of specific investigative keywords.
     *   `modal_count`: Density of legalistic verbs (*must, shall, should*).
     *   `uncertainty_count`: Risk-related language (*likely, possibly, risk*).
-    *   `caps_ratio` & `has_dollar`: Formatting and financial content indicators.   gygy
+    *   `caps_ratio` & `has_dollar`: Formatting and financial content indicators.   gyg
 
 ### 2. Model Zoo 
 *   **Classical ML**: Logistic Regression, Random Forest, SVM, and **XGBoost** (tuned for high recall).
