@@ -48,7 +48,7 @@ Core strategy to be implemented :
 
 ---
 
-## 📂 Repository Structure huhu
+## 📂 Repository Structure hu
 
 ```text
 NLP3/
