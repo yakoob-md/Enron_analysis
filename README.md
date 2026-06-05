@@ -38,6 +38,8 @@ hhh
     *   **BiLSTM**: Bidirectional sequence modeling with Layer Normalization and Dropout.
 
 ### 3. Advanced Optimization
+Core strategy to be implemented : 
+
 *   **Imbalance Mitigation**: Implements **Balanced Class Weights** and **Multiclass Focal Loss** to handle skewed distributions.
 *   **Dynamic Thresholding**: Rejects the default 0.5 boundary in favor of:
     *   **Youden’s J Statistic**: Equalizing error rates.
