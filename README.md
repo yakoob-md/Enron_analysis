@@ -37,8 +37,7 @@ hhh
     *   **BERT (base-uncased)**: Fine-tuned with a custom classification head and warm-up scheduling.
     *   **BiLSTM**: Bidirectional sequence modeling with Layer Normalization and Dropout.
 
-### 3. Advanced Optimization
-Core strategy to be implemented : 
+### 3. Advanced Optimization 
 
 *   **Imbalance Mitigation**: Implements **Balanced Class Weights** and **Multiclass Focal Loss** to handle skewed distributions.
 *   **Dynamic Thresholding**: Rejects the default 0.5 boundary in favor of:
