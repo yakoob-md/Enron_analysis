@@ -35,7 +35,7 @@ Combines statistical lexical patterns with domain expertise:
 *   **Classical ML**: Logistic Regression, Random Forest, SVM, and **XGBoost** (tuned for high recall).
 *   **Deep Learning**:  
     *   **BERT (base-uncased)**: Fine-tuned with a custom classification head and warm-up scheduling.
-    *   **BiLSTM**: Bidirectional sequence modeling with Layer Normalization and Dropout.
+    *   **BiLSTM**: Bidirectional sequence modeling with Layer Normalization and Dropout. ssdd
 
 ### 3. Advanced Optimization 
 
